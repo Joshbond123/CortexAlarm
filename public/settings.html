@@ -4,8 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Cortex Alarm — Settings</title>
-<link rel="stylesheet" href="/CortexAlarm/public/css/style.css"/>
-<link rel="manifest" href="/CortexAlarm/public/manifest.json"/>
+<link rel="stylesheet" href="/CortexAlarm/css/style.css"/>
+<link rel="manifest" href="/CortexAlarm/manifest.json"/>
 </head>
 <body>
 <div class="app-layout">
@@ -151,8 +151,8 @@
   <div class="bottom-nav-inner" id="bottom-nav"></div>
 </nav>
 
-<script src="/CortexAlarm/public/js/supabase-client.js"></script>
-<script src="/CortexAlarm/public/js/utils.js"></script>
+<script src="/CortexAlarm/js/supabase-client.js"></script>
+<script src="/CortexAlarm/js/utils.js"></script>
 <script>
 utils.buildNav('settings');
 
@@ -286,7 +286,7 @@ async function deleteKey(id) {
 }
 
 // ── Push subscription ─────────────────────────────────────────────
-const SW_PATH = '/CortexAlarm/public/sw.js';
+const SW_PATH = '/CortexAlarm/sw.js';
 
 async function getVapidPublicKey() {
   const rows = await sb.select('vapid_keys', 'id=eq.1&select=public_key');
