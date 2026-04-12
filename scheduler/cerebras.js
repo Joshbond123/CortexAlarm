@@ -54,7 +54,7 @@ export async function generateMessage(prompt) {
           Authorization: `Bearer ${entry.key}`,
         },
         body: JSON.stringify({
-          model: 'gpt-oss-120b',
+          model: 'llama3.1-8b',
           messages: [
             {
               role: 'system',
