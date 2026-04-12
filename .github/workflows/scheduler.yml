@@ -1,0 +1,50 @@
+name: Cortex Alarm Scheduler
+
+on:
+  schedule:
+    # Every 5 minutes
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      manual_type:
+        description: "Notification type (morning/afternoon/evening/test)"
+        required: false
+        default: "test"
+
+permissions:
+  contents: write
+
+jobs:
+  run-scheduler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install scheduler dependencies
+        run: |
+          cd scheduler
+          npm install
+
+      - name: Run scheduler
+        run: node scheduler/index.js
+        env:
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+
+      - name: Commit updated storage
+        run: |
+          git config user.name "Cortex Alarm Bot"
+          git config user.email "cortexalarm@study.app"
+          git add storage/
+          git diff --staged --quiet || git commit -m "chore: update storage [scheduler run $(date -u +%Y-%m-%dT%H:%M:%SZ)]"
+          git push
+        continue-on-error: true
