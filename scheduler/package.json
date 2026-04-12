@@ -1,7 +1,8 @@
 {
   "name": "cortex-alarm-scheduler",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "description": "Cortex Alarm scheduler — sends AI push notifications via GitHub Actions",
   "dependencies": {
     "web-push": "^3.6.7"
   }
