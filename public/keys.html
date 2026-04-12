@@ -2,187 +2,220 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1a">
 <title>Cortex Alarm — API Keys</title>
 <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
+<div class="app-shell">
 
-<aside class="sidebar">
-  <div class="sidebar-brand"><span class="icon">⊛</span><span>CORTEX_ALARM</span><span class="dot"></span></div>
-  <nav>
-    <div class="nav-section">Navigation</div>
-    <a class="nav-link" href="./index.html"><span class="icon">⬡</span><span>Dashboard</span></a>
-    <a class="nav-link" href="./notifications.html"><span class="icon">◈</span><span>Inbox</span></a>
-    <a class="nav-link" href="./timetable.html"><span class="icon">◫</span><span>Timetable</span></a>
-    <div class="nav-section">System</div>
-    <a class="nav-link" href="./settings.html"><span class="icon">⚙</span><span>Settings</span></a>
-    <a class="nav-link active" href="./keys.html"><span class="icon">⌗</span><span>API Keys</span></a>
-    <a class="nav-link" href="./device.html"><span class="icon">⌖</span><span>Device</span></a>
-    <a class="nav-link" href="./logs.html"><span class="icon">≡</span><span>Logs</span></a>
-  </nav>
-  <div class="sidebar-footer"><span class="status-dot"></span><span>SYS_ONLINE</span></div>
-</aside>
-
-<div class="main">
-  <div class="page-header">
-    <div class="page-title-wrap">
-      <div class="page-title">Cerebras API Keys</div>
-      <div class="page-subtitle">Manage unlimited keys — rotated automatically with failover</div>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⊛</div>
+      <div><div class="brand-name">Cortex Alarm</div><div class="brand-sub">ND1 Study System</div></div>
+      <div class="brand-pulse"></div>
     </div>
-    <div style="padding-bottom:20px">
-      <span class="badge badge-blue" id="key-count-badge">0 Keys</span>
+    <nav style="padding:8px;flex:1;overflow-y:auto">
+      <div class="nav-group"><div class="nav-group-label">Main</div>
+        <a class="nav-link" href="./index.html"><span class="nav-icon">⬡</span><span>Dashboard</span></a>
+        <a class="nav-link" href="./notifications.html"><span class="nav-icon">◈</span><span>Inbox</span></a>
+        <a class="nav-link" href="./timetable.html"><span class="nav-icon">◫</span><span>Timetable</span></a>
+      </div>
+      <div class="nav-group"><div class="nav-group-label">System</div>
+        <a class="nav-link" href="./settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+        <a class="nav-link active" href="./keys.html"><span class="nav-icon">⌗</span><span>API Keys</span></a>
+        <a class="nav-link" href="./device.html"><span class="nav-icon">⌖</span><span>Device</span></a>
+        <a class="nav-link" href="./logs.html"><span class="nav-icon">≡</span><span>Logs</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-footer"><div class="sys-dot"></div><span class="sys-label">System Online</span></div>
+  </aside>
+
+  <div class="main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-title">Cerebras API Keys</div>
+        <div class="page-subtitle">Unlimited keys with automatic rotation and failover</div>
+      </div>
+      <div class="page-actions">
+        <span class="badge badge-blue" id="key-badge">0 Keys</span>
+      </div>
     </div>
-  </div>
+    <div class="page-divider"></div>
 
-  <div class="page-content">
-    <div class="grid grid-2" style="align-items:start;gap:20px">
+    <div class="page-content">
+      <div class="grid grid-2" style="align-items:start;gap:20px">
 
-      <div>
-        <div class="section-title">Add New Key</div>
-        <div class="card mb-4">
-          <div style="margin-bottom:12px">
-            <label>Key Label (optional nickname)</label>
-            <input type="text" id="key-label" placeholder="e.g. Primary, Backup 1...">
+        <!-- Add key -->
+        <div>
+          <div class="section-header mb-3"><div class="section-title">Add New Key</div></div>
+          <div class="card mb-4">
+            <div class="form-group">
+              <label class="form-label">Label (optional)</label>
+              <input type="text" class="form-input" id="key-label" placeholder="e.g. Primary, Backup 1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cerebras API Key</label>
+              <input type="password" class="form-input" id="key-value" placeholder="csk-...">
+            </div>
+            <button class="btn btn-primary w-full" id="add-key-btn">+ Add Key</button>
           </div>
-          <div style="margin-bottom:14px">
-            <label>Cerebras API Key</label>
-            <input type="password" id="key-value" placeholder="csk-...">
+
+          <div class="section-header mb-3"><div class="section-title">How Rotation Works</div></div>
+          <div class="card">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <span class="badge badge-blue" style="flex-shrink:0;margin-top:1px">1</span>
+                <div style="font-size:.85rem;color:var(--text-secondary)"><strong style="color:var(--text)">Round-robin</strong> — each scheduler run uses the next active key in sequence</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <span class="badge badge-blue" style="flex-shrink:0;margin-top:1px">2</span>
+                <div style="font-size:.85rem;color:var(--text-secondary)"><strong style="color:var(--text)">Auto-failover</strong> — if a key fails, the next active key is tried immediately</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <span class="badge badge-blue" style="flex-shrink:0;margin-top:1px">3</span>
+                <div style="font-size:.85rem;color:var(--text-secondary)"><strong style="color:var(--text)">Usage tracking</strong> — requests, success, and failure counts per key</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <span class="badge badge-blue" style="flex-shrink:0;margin-top:1px">4</span>
+                <div style="font-size:.85rem;color:var(--text-secondary)"><strong style="color:var(--text)">No limit</strong> — add as many keys as needed</div>
+              </div>
+            </div>
           </div>
-          <button class="btn btn-primary" id="add-key-btn" style="width:100%">Add Key</button>
         </div>
 
-        <div class="section-title">Rotation Info</div>
-        <div class="card">
-          <div style="font-size:.85rem;color:var(--muted);line-height:1.7">
-            <div style="margin-bottom:8px">⊛ <strong style="color:var(--text)">Round-robin rotation</strong> — each request uses the next key in sequence</div>
-            <div style="margin-bottom:8px">⊛ <strong style="color:var(--text)">Auto-failover</strong> — if a key fails, the next active key is tried immediately</div>
-            <div style="margin-bottom:8px">⊛ <strong style="color:var(--text)">Unlimited keys</strong> — add as many keys as needed</div>
-            <div>⊛ <strong style="color:var(--text)">Usage tracking</strong> — see requests, success, and failure counts per key</div>
+        <!-- Keys list -->
+        <div>
+          <div class="section-header mb-3"><div class="section-title">Active Keys</div></div>
+          <div id="keys-list">
+            <div class="empty-state"><div class="empty-icon">⌗</div><div class="empty-title">No keys configured</div><div class="empty-desc">Add your first Cerebras API key to enable AI messages</div></div>
           </div>
         </div>
+
       </div>
 
-      <div>
-        <div class="section-title">Configured Keys</div>
-        <div id="keys-list">
-          <div class="empty"><div class="empty-icon">⌗</div><div class="empty-text">No keys configured</div></div>
+      <!-- Usage table -->
+      <div style="margin-top:28px">
+        <div class="section-header mb-3"><div class="section-title">Usage Statistics</div></div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrap" id="stats-table">
+            <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:.85rem">No usage data yet</div>
+          </div>
         </div>
-      </div>
-
-    </div>
-
-    <!-- Stats table -->
-    <div class="section-title" style="margin-top:28px">Usage Statistics</div>
-    <div class="card">
-      <div class="table-wrap" id="stats-table-wrap">
-        <div class="empty" style="padding:24px"><div class="empty-text">No usage data yet</div></div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a class="bnav-item" href="./index.html"><div class="bnav-icon">⬡</div><div class="bnav-label">Home</div></a>
+    <a class="bnav-item" href="./notifications.html"><div class="bnav-icon">◈</div><div class="bnav-label">Inbox</div></a>
+    <a class="bnav-item" href="./timetable.html"><div class="bnav-icon">◫</div><div class="bnav-label">Schedule</div></a>
+    <a class="bnav-item" href="./settings.html"><div class="bnav-icon">⚙</div><div class="bnav-label">Settings</div></a>
+    <a class="bnav-item" href="./logs.html"><div class="bnav-icon">≡</div><div class="bnav-label">Logs</div></a>
+  </div>
+</nav>
+
 <div id="toast-container"></div>
 
 <script type="module">
-import { fetchStorage, saveJsonToRepo, toast, fmtDate } from './js/utils.js';
+import { fetchStorage, saveJsonToRepo, toast, fmtDate, esc } from './js/utils.js';
 
 let keys = [];
 
-async function load() {
-  keys = (await fetchStorage('api_keys')) || [];
-  render();
+function maskKey(k) {
+  if (!k || k.length < 8) return '••••••••';
+  return k.slice(0, 6) + '•'.repeat(Math.min(k.length - 10, 12)) + k.slice(-4);
 }
 
 function render() {
-  document.getElementById('key-count-badge').textContent = `${keys.length} Key${keys.length === 1 ? '' : 's'}`;
+  const active = keys.filter(k => k.active).length;
+  document.getElementById('key-badge').textContent = `${keys.length} Key${keys.length !== 1 ? 's' : ''} · ${active} Active`;
 
   const list = document.getElementById('keys-list');
   if (!keys.length) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">⌗</div><div class="empty-text">No keys configured</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⌗</div><div class="empty-title">No keys configured</div><div class="empty-desc">Add your first Cerebras API key</div></div>`;
   } else {
-    list.innerHTML = keys.map((k, i) => `
-      <div class="card mb-4" style="border-color:${k.active ? 'rgba(59,130,246,.3)' : 'rgba(239,68,68,.2)'}">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;margin-bottom:4px">${escHtml(k.label || `Key ${i+1}`)}</div>
-            <div style="font-family:var(--mono);font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${maskKey(k.key)}</div>
+    list.innerHTML = keys.map((k, i) => {
+      const rate = k.requests ? Math.round(((k.success||0)/k.requests)*100) : null;
+      return `<div class="card mb-3" style="border-color:${k.active ? 'rgba(59,130,246,.25)' : 'var(--border)'}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
+          <div style="min-width:0;flex:1">
+            <div style="font-weight:700;margin-bottom:3px">${esc(k.label || `Key ${i+1}`)}</div>
+            <div class="mono" style="font-size:.73rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${maskKey(k.key)}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            <span class="badge ${k.active ? 'badge-green' : 'badge-red'}">${k.active ? 'ACTIVE' : 'INACTIVE'}</span>
-            <button class="btn btn-ghost btn-sm" onclick="toggleKey(${i})">${k.active ? 'Disable' : 'Enable'}</button>
-            <button class="btn btn-danger btn-sm" onclick="removeKey(${i})">Remove</button>
+          <div style="display:flex;gap:5px;flex-shrink:0">
+            <span class="badge ${k.active ? 'badge-green' : 'badge-muted'}">${k.active ? '● Active' : '○ Off'}</span>
           </div>
         </div>
-        <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
-          <span class="badge badge-muted">Requests: ${k.requests || 0}</span>
-          <span class="badge badge-green">Success: ${k.success || 0}</span>
-          <span class="badge badge-red">Fail: ${k.fail || 0}</span>
-          ${k.lastUsed ? `<span class="badge badge-muted">Last: ${fmtDate(k.lastUsed)}</span>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="badge badge-muted">Req: ${k.requests||0}</span>
+          <span class="badge badge-green">OK: ${k.success||0}</span>
+          <span class="badge badge-red">Err: ${k.fail||0}</span>
+          ${rate !== null ? `<span class="badge badge-blue">${rate}% success</span>` : ''}
+          ${k.lastUsed ? `<span class="badge badge-muted">${fmtDate(k.lastUsed)}</span>` : ''}
         </div>
-      </div>`).join('');
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-xs" onclick="toggleKey(${i})">${k.active ? 'Disable' : 'Enable'}</button>
+          <button class="btn btn-danger btn-xs" onclick="removeKey(${i})">Remove</button>
+        </div>
+      </div>`;
+    }).join('');
   }
 
-  const tableWrap = document.getElementById('stats-table-wrap');
+  const tbl = document.getElementById('stats-table');
   if (keys.length) {
-    tableWrap.innerHTML = `<table>
-      <thead><tr><th>#</th><th>Label</th><th>Key</th><th>Status</th><th>Requests</th><th>Success</th><th>Fail</th><th>Rate</th><th>Last Used</th></tr></thead>
-      <tbody>${keys.map((k,i) => `
-        <tr>
-          <td>${i+1}</td>
-          <td>${escHtml(k.label || `Key ${i+1}`)}</td>
-          <td style="font-family:var(--mono);font-size:.75rem">${maskKey(k.key)}</td>
-          <td><span class="badge ${k.active ? 'badge-green' : 'badge-red'}">${k.active ? 'ACTIVE' : 'OFF'}</span></td>
-          <td>${k.requests || 0}</td>
-          <td style="color:var(--green)">${k.success || 0}</td>
-          <td style="color:var(--red)">${k.fail || 0}</td>
-          <td>${k.requests ? Math.round(((k.success||0)/k.requests)*100)+'%' : '—'}</td>
-          <td style="font-size:.78rem;color:var(--muted)">${k.lastUsed ? fmtDate(k.lastUsed) : '—'}</td>
-        </tr>`).join('')}
-      </tbody>
+    tbl.innerHTML = `<table>
+      <thead><tr><th>#</th><th>Label</th><th>Key</th><th>Status</th><th>Requests</th><th>Success</th><th>Failures</th><th>Rate</th><th>Last Used</th></tr></thead>
+      <tbody>${keys.map((k,i) => `<tr>
+        <td>${i+1}</td>
+        <td>${esc(k.label||`Key ${i+1}`)}</td>
+        <td class="mono" style="font-size:.75rem">${maskKey(k.key)}</td>
+        <td><span class="badge ${k.active?'badge-green':'badge-muted'}">${k.active?'Active':'Off'}</span></td>
+        <td>${k.requests||0}</td>
+        <td style="color:var(--green)">${k.success||0}</td>
+        <td style="color:var(--red)">${k.fail||0}</td>
+        <td>${k.requests ? Math.round(((k.success||0)/k.requests)*100)+'%' : '—'}</td>
+        <td style="font-size:.78rem;color:var(--text-muted)">${k.lastUsed ? fmtDate(k.lastUsed) : '—'}</td>
+      </tr>`).join('')}</tbody>
     </table>`;
   }
 }
 
-function maskKey(key) {
-  if (!key || key.length < 8) return '****';
-  return key.slice(0, 6) + '•'.repeat(Math.max(0, key.length - 10)) + key.slice(-4);
-}
-function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
 window.toggleKey = async (i) => {
-  keys[i].active = !keys[i].active;
-  render();
-  const res = await saveJsonToRepo('storage/api_keys.json', keys, 'chore: toggle api key');
-  toast(res.ok ? 'Key updated' : 'Updated locally — add GitHub token to persist', res.ok ? 'success' : 'info');
+  keys[i].active = !keys[i].active; render();
+  const r = await saveJsonToRepo('storage/api_keys.json', keys, 'chore: toggle key');
+  toast(r.ok ? 'Key updated' : 'Updated locally — add GitHub token to sync', r.ok ? 'success' : 'info');
 };
 
 window.removeKey = async (i) => {
-  if (!confirm(`Remove key "${keys[i].label || `Key ${i+1}`}"?`)) return;
-  keys.splice(i, 1);
-  render();
-  const res = await saveJsonToRepo('storage/api_keys.json', keys, 'chore: remove api key');
-  toast(res.ok ? 'Key removed' : 'Removed locally — add GitHub token to persist', res.ok ? 'success' : 'info');
+  const label = keys[i].label || `Key ${i+1}`;
+  if (!confirm(`Remove "${label}"?`)) return;
+  keys.splice(i, 1); render();
+  const r = await saveJsonToRepo('storage/api_keys.json', keys, 'chore: remove key');
+  toast(r.ok ? 'Key removed' : 'Removed locally — add GitHub token to sync', r.ok ? 'success' : 'info');
 };
 
 document.getElementById('add-key-btn').addEventListener('click', async () => {
   const label = document.getElementById('key-label').value.trim();
   const key = document.getElementById('key-value').value.trim();
   if (!key) { toast('Enter a Cerebras API key', 'error'); return; }
-  if (!key.startsWith('csk-') && !confirm('Key does not start with "csk-". Add anyway?')) return;
-
-  const existing = keys.find(k => k.key === key);
-  if (existing) { toast('This key already exists', 'error'); return; }
-
+  if (keys.some(k => k.key === key)) { toast('This key already exists', 'error'); return; }
   keys.push({ id: crypto.randomUUID(), label: label || `Key ${keys.length+1}`, key, active: true, requests: 0, success: 0, fail: 0, lastUsed: null, addedAt: new Date().toISOString() });
   document.getElementById('key-label').value = '';
   document.getElementById('key-value').value = '';
   render();
-  const res = await saveJsonToRepo('storage/api_keys.json', keys, 'chore: add api key');
-  toast(res.ok ? 'Key added and saved to repo' : 'Key added locally — add GitHub token to save to repo', res.ok ? 'success' : 'info');
+  const r = await saveJsonToRepo('storage/api_keys.json', keys, 'chore: add key');
+  toast(r.ok ? 'Key added and saved to repo' : 'Key added — add GitHub token to sync', r.ok ? 'success' : 'info');
 });
 
-load();
+(async () => {
+  keys = (await fetchStorage('api_keys')) || [];
+  render();
+})();
 </script>
 </body>
 </html>
