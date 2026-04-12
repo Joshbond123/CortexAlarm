@@ -1,17 +1,18 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import webpush from "web-push";
-import { getTodayTimetable, getYesterdayTimetable, getLastLectureEndTime } from "./timetable.js";
+import { getTodayTimetable, getYesterdayTimetable, getLastLectureEndTime, isWeekend, getAllCourseNames } from "./timetable.js";
 import { generateMessage } from "./cerebras.js";
 
 const STORAGE_DIR = join(process.cwd(), "storage");
-const SUBS_FILE = join(STORAGE_DIR, "subscribers.json");
-const NOTIFS_FILE = join(STORAGE_DIR, "notifications.json");
-const VAPID_FILE = join(STORAGE_DIR, "vapid_keys.json");
+const SUBS_FILE    = join(STORAGE_DIR, "subscribers.json");
+const NOTIFS_FILE  = join(STORAGE_DIR, "notifications.json");
+const VAPID_FILE   = join(STORAGE_DIR, "vapid_keys.json");
 const SETTINGS_FILE = join(STORAGE_DIR, "settings.json");
-const LOGS_FILE = join(STORAGE_DIR, "logs.json");
-const SENT_TODAY_FILE = join(STORAGE_DIR, "sent_today.json");
+const LOGS_FILE    = join(STORAGE_DIR, "logs.json");
+const SENT_FILE    = join(STORAGE_DIR, "sent_today.json");
 
+// ── File helpers ─────────────────────────────────────────────────
 function ensureStorage() {
   if (!existsSync(STORAGE_DIR)) mkdirSync(STORAGE_DIR, { recursive: true });
 }
@@ -26,201 +27,218 @@ function write(file, data) {
   writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
 }
 
-function appendLog(level, message, details) {
+// ── Logging ──────────────────────────────────────────────────────
+function log(level, message, details) {
+  console.log(`[${level.toUpperCase()}] ${message}`);
   const logs = read(LOGS_FILE, []);
-  logs.unshift({
-    id: crypto.randomUUID(),
-    level,
-    message,
-    timestamp: new Date().toISOString(),
-    details: details || null,
-  });
+  logs.unshift({ id: crypto.randomUUID(), level, message, details: details || null, timestamp: new Date().toISOString() });
   write(LOGS_FILE, logs.slice(0, 1000));
 }
 
+// ── VAPID keys ───────────────────────────────────────────────────
 function getVapidKeys() {
   let keys = read(VAPID_FILE, null);
-  if (!keys) {
+  if (!keys || !keys.publicKey) {
     keys = webpush.generateVAPIDKeys();
     write(VAPID_FILE, keys);
+    log("info", "Generated new VAPID keys");
   }
   return keys;
 }
 
+// ── Settings ─────────────────────────────────────────────────────
 function getSettings() {
-  const defaults = {
+  return {
     aiEnabled: true,
     notificationsEnabled: true,
     morningTime: "06:00",
-    afternoonTrigger: true,
     eveningTime: "18:00",
+    afternoonTrigger: true,
+    weekendReminders: true,
     timezone: "Africa/Lagos",
+    ...read(SETTINGS_FILE, {}),
   };
-  return { ...defaults, ...read(SETTINGS_FILE, {}) };
 }
 
-async function sendPush(title, body, type, aiGenerated = false) {
-  const keys = getVapidKeys();
-  webpush.setVapidDetails("mailto:cortexalarm@study.app", keys.publicKey, keys.privateKey);
-
-  const subs = read(SUBS_FILE, []).filter((s) => s.active);
-  const notification = {
-    id: crypto.randomUUID(),
-    title,
-    body,
-    type,
-    sentAt: new Date().toISOString(),
-    read: false,
-    aiGenerated,
-  };
-  const notifs = read(NOTIFS_FILE, []);
-  notifs.unshift(notification);
-  write(NOTIFS_FILE, notifs.slice(0, 500));
-
-  console.log(`[${type.toUpperCase()}] Sending: "${title}" to ${subs.length} subscriber(s)`);
-
-  for (const sub of subs) {
-    try {
-      await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: sub.keys },
-        JSON.stringify({ title, body, type })
-      );
-      console.log(`  Sent to ${sub.deviceName}`);
-    } catch (err) {
-      console.error(`  Failed for ${sub.id}:`, err.message);
-      if (err.statusCode === 410) {
-        const cs = read(SUBS_FILE, []);
-        const i = cs.findIndex((s) => s.id === sub.id);
-        if (i !== -1) { cs[i].active = false; write(SUBS_FILE, cs); }
-      }
-    }
-  }
-}
-
+// ── Current time in timezone ─────────────────────────────────────
 function getCurrentHHMM(timezone) {
-  const now = new Date();
   const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
+    timeZone: timezone, hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(new Date());
   const h = parts.find((p) => p.type === "hour")?.value || "00";
   const m = parts.find((p) => p.type === "minute")?.value || "00";
   return `${h}:${m}`;
 }
 
-function timesMatch(a, b, toleranceMinutes = 5) {
+function timesMatch(a, b, toleranceMinutes = 4) {
   const [ah, am] = a.split(":").map(Number);
   const [bh, bm] = b.split(":").map(Number);
-  const diff = Math.abs((ah * 60 + am) - (bh * 60 + bm));
-  return diff <= toleranceMinutes;
+  return Math.abs(ah * 60 + am - (bh * 60 + bm)) <= toleranceMinutes;
 }
 
+// ── Duplicate send prevention ─────────────────────────────────────
 function getSentToday() {
   const today = new Date().toDateString();
-  const data = read(SENT_TODAY_FILE, { date: null, sent: [] });
+  const data = read(SENT_FILE, { date: null, sent: [] });
   if (data.date !== today) return [];
   return data.sent;
 }
 
 function markSent(type) {
   const today = new Date().toDateString();
-  const data = read(SENT_TODAY_FILE, { date: null, sent: [] });
-  if (data.date !== today) {
-    write(SENT_TODAY_FILE, { date: today, sent: [type] });
-  } else {
-    if (!data.sent.includes(type)) {
-      data.sent.push(type);
-      write(SENT_TODAY_FILE, data);
-    }
-  }
+  const data = read(SENT_FILE, { date: null, sent: [] });
+  const sent = data.date === today ? data.sent : [];
+  if (!sent.includes(type)) sent.push(type);
+  write(SENT_FILE, { date: today, sent });
 }
 
+// ── Send push to all subscribers ──────────────────────────────────
+async function sendPush(title, body, type, aiGenerated = false) {
+  const keys = getVapidKeys();
+  webpush.setVapidDetails("mailto:cortexalarm@study.app", keys.publicKey, keys.privateKey);
+
+  const notification = {
+    id: crypto.randomUUID(),
+    title, body, type,
+    sentAt: new Date().toISOString(),
+    read: false,
+    aiGenerated,
+  };
+
+  const notifs = read(NOTIFS_FILE, []);
+  notifs.unshift(notification);
+  write(NOTIFS_FILE, notifs.slice(0, 500));
+
+  const subs = read(SUBS_FILE, []).filter((s) => s.active);
+  log("info", `Sending "${title}" [${type}] to ${subs.length} subscriber(s)`);
+
+  let sent = 0, failed = 0;
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: sub.keys },
+        JSON.stringify({ title, body, type, id: notification.id })
+      );
+      sent++;
+      console.log(`  ✓ Sent to ${sub.deviceName || sub.id}`);
+    } catch (err) {
+      failed++;
+      console.error(`  ✗ Failed for ${sub.id}: ${err.message}`);
+      if (err.statusCode === 410) {
+        const current = read(SUBS_FILE, []);
+        const i = current.findIndex((s) => s.id === sub.id);
+        if (i !== -1) { current[i].active = false; write(SUBS_FILE, current); }
+      }
+    }
+  }
+
+  log(failed === subs.length && subs.length > 0 ? "error" : "success",
+    `Push sent: ${sent} delivered, ${failed} failed`);
+}
+
+// ── Main scheduler logic ──────────────────────────────────────────
 async function main() {
   ensureStorage();
   const settings = getSettings();
 
   if (!settings.notificationsEnabled) {
-    console.log("Notifications are disabled. Exiting.");
+    log("info", "Notifications disabled — skipping");
     return;
   }
 
-  const currentTime = getCurrentHHMM(settings.timezone);
+  const tz = settings.timezone || "Africa/Lagos";
+  const currentTime = getCurrentHHMM(tz);
   const sentToday = getSentToday();
-  console.log(`Current time (${settings.timezone}): ${currentTime}`);
-  console.log(`Already sent today: ${sentToday.join(", ") || "none"}`);
+  const today = getTodayTimetable(tz);
+  const yesterday = getYesterdayTimetable(tz);
+  const weekend = isWeekend(today);
 
-  const today = getTodayTimetable();
-  const yesterday = getYesterdayTimetable();
-  const lastLecture = getLastLectureEndTime(today);
+  console.log(`\n[SCHEDULER] ${new Date().toISOString()}`);
+  console.log(`  Timezone: ${tz} | Local time: ${currentTime}`);
+  console.log(`  Day: ${today.day} | Weekend: ${weekend}`);
+  console.log(`  Sent today: ${sentToday.join(", ") || "none"}`);
 
-  // Morning notification at configured time
+  // ── Morning notification ──────────────────────────────────────
   if (timesMatch(currentTime, settings.morningTime) && !sentToday.includes("morning")) {
-    console.log("Triggering morning notification...");
-    const yesterdayCourses = yesterday.lectures.map((l) => l.subject).join(", ") || "general review";
+    let body, prompt;
 
-    let body = `Good morning. Yesterday's lectures covered: ${yesterdayCourses}. Before anything else, review those materials now. No one will teach you in the exam hall.`;
-
-    if (settings.aiEnabled) {
-      const aiMsg = await generateMessage(
-        `Generate a morning study review reminder for an ND1 engineering student. Yesterday's courses were: ${yesterdayCourses}. Remind them to review these before the day begins. Be strict, professional, and motivating.`
-      );
-      if (aiMsg) { body = aiMsg; }
+    if (weekend) {
+      // Weekend morning: revision of weak/pending topics
+      const allCourses = getAllCourseNames().join(", ");
+      prompt = `Generate a Saturday/Sunday morning study reminder for an ND1 Computer Science student. Today is ${today.day} — no lectures. All courses this semester: ${allCourses}. Tell them to identify their weakest topics and dedicate focused time to revising them today. Be strict, professional, and direct. No emojis.`;
+      body = `Good morning. Today is ${today.day} — no lectures, which means zero excuses. Identify your weakest topic from this semester's courses and spend focused time on it. Remember: no one will teach you in the exam hall. Open your notes.`;
+    } else {
+      const yesterdayCourses = yesterday.lectures.map((l) => `${l.code} (${l.subject})`).join(", ") || "previous work";
+      prompt = `Generate a morning study reminder for an ND1 Computer Science student. Yesterday's courses were: ${yesterdayCourses}. Remind them to review these materials before attending today's lectures. Be strict, professional, and direct. No emojis.`;
+      body = `Good morning. Yesterday you covered: ${yesterdayCourses}. Review those notes before class today — understanding compounds and gaps widen fast. No one will rescue you in the exam hall.`;
     }
 
-    await sendPush("Morning Review Directive", body, "morning", settings.aiEnabled);
+    if (settings.aiEnabled) {
+      const ai = await generateMessage(prompt);
+      if (ai) body = ai;
+    }
+
+    const title = weekend ? `${today.day} Morning Revision` : "Morning Review Directive";
+    await sendPush(title, body, weekend ? "weekend" : "morning", settings.aiEnabled);
     markSent("morning");
-    appendLog("success", "Morning notification sent");
+    log("success", `Morning notification sent (${today.day})`);
   }
 
-  // Afternoon notification - 1 hour after last lecture
-  if (settings.afternoonTrigger && lastLecture && !sentToday.includes("afternoon")) {
-    const [lh, lm] = lastLecture.split(":").map(Number);
-    const afterH = Math.floor((lh * 60 + lm + 60) / 60);
-    const afterM = (lh * 60 + lm + 60) % 60;
-    const triggerTime = `${String(afterH).padStart(2, "0")}:${String(afterM).padStart(2, "0")}`;
+  // ── Post-lecture notification (weekdays only) ─────────────────
+  if (!weekend && settings.afternoonTrigger && !sentToday.includes("afternoon")) {
+    const lastEnd = getLastLectureEndTime(today);
+    if (lastEnd) {
+      const [lh, lm] = lastEnd.split(":").map(Number);
+      const total = lh * 60 + lm + 60;
+      const triggerTime = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 
-    if (timesMatch(currentTime, triggerTime)) {
-      console.log("Triggering afternoon notification...");
-      const courses = today.lectures.map((l) => l.subject).join(", ") || "today's subjects";
-      let body = `Lectures done for the day. The real work begins now. Review every note from today's classes: ${courses}. Consolidation is the difference between passing and failing.`;
+      if (timesMatch(currentTime, triggerTime)) {
+        const courses = today.lectures.map((l) => `${l.code} (${l.subject})`).join(", ") || "today's subjects";
+        const prompt = `Generate a post-lecture study consolidation message for an ND1 Computer Science student. Today's completed lectures were: ${courses}. Urge them to review all lecture notes immediately. Be strict and professional. No emojis.`;
+        let body = `Lectures done for the day. Now consolidate: review every note from ${courses}. This is where understanding is either locked in or lost. The exam hall has no lectures — only what you already know.`;
 
-      if (settings.aiEnabled) {
-        const aiMsg = await generateMessage(
-          `Generate a post-lecture study discipline message for an ND1 engineering student. Today's completed lectures were: ${courses}. Encourage them to review immediately. Be strict and professional.`
-        );
-        if (aiMsg) { body = aiMsg; }
+        if (settings.aiEnabled) {
+          const ai = await generateMessage(prompt);
+          if (ai) body = ai;
+        }
+
+        await sendPush("Post-Lecture Consolidation", body, "afternoon", settings.aiEnabled);
+        markSent("afternoon");
+        log("success", "Post-lecture notification sent");
       }
-
-      await sendPush("Post-Lecture Consolidation", body, "afternoon", settings.aiEnabled);
-      markSent("afternoon");
-      appendLog("success", "Afternoon notification sent");
     }
   }
 
-  // Evening notification at configured time
+  // ── Evening notification ──────────────────────────────────────
   if (timesMatch(currentTime, settings.eveningTime) && !sentToday.includes("evening")) {
-    console.log("Triggering evening notification...");
-    const courses = today.lectures.map((l) => l.subject).join(", ") || "today's subjects";
-    let body = `Evening study session begins now. If you have not reviewed today's material: ${courses}, stop what you are doing and open your notes. Mediocrity is a choice. Don't make it.`;
+    let body, prompt;
+
+    if (weekend) {
+      // Weekend evening: read before sleep, prepare for next week
+      const allCourses = getAllCourseNames().join(", ");
+      prompt = `Generate a weekend evening study reminder for an ND1 Computer Science student. Today is ${today.day}. Tell them to review what they studied today, read ahead, and prepare mentally for the coming week. Courses this semester: ${allCourses}. Be strict, professional. No emojis.`;
+      body = `Evening check-in. Before you sleep tonight, review everything you studied today. Read ahead for next week's lectures. Consistent daily preparation is the only thing that separates those who pass from those who don't.`;
+    } else {
+      const courses = today.lectures.map((l) => `${l.code} (${l.subject})`).join(", ") || "today's subjects";
+      prompt = `Generate an evening study discipline message for an ND1 Computer Science student. Today's subjects were: ${courses}. Tell them to do a final review session before sleep. Be strict, professional. No emojis.`;
+      body = `Evening directive: if you have not yet reviewed today's material (${courses}), do it now. A final pass before sleep locks information into long-term memory. Discipline today is performance in the exam hall.`;
+    }
 
     if (settings.aiEnabled) {
-      const aiMsg = await generateMessage(
-        `Generate an evening study discipline reminder for an ND1 engineering student. Today's subjects were: ${courses}. Remind them that evening study is non-negotiable. Be professional and strict.`
-      );
-      if (aiMsg) { body = aiMsg; }
+      const ai = await generateMessage(prompt);
+      if (ai) body = ai;
     }
 
-    await sendPush("Evening Study Directive", body, "evening", settings.aiEnabled);
+    const title = weekend ? `${today.day} Evening Prep` : "Evening Study Directive";
+    await sendPush(title, body, weekend ? "weekend" : "evening", settings.aiEnabled);
     markSent("evening");
-    appendLog("success", "Evening notification sent");
+    log("success", `Evening notification sent (${today.day})`);
   }
 
-  console.log("Scheduler run complete.");
+  console.log("\n[SCHEDULER] Run complete.\n");
 }
 
 main().catch((err) => {
-  console.error("Scheduler error:", err);
+  console.error("[SCHEDULER] Fatal error:", err);
   process.exit(1);
 });
