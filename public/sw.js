@@ -1,23 +1,23 @@
-// Cortex Alarm — Service Worker v3
+// Cortex Alarm — Service Worker v4 (Supabase backend)
+const BASE = '/CortexAlarm';
+
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', event => event.waitUntil(clients.claim()));
+self.addEventListener('activate', e => e.waitUntil(clients.claim()));
 
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; }
   catch { data = { title: 'Cortex Alarm', body: event.data ? event.data.text() : 'Study reminder.' }; }
 
-  const title = data.title || 'Cortex Alarm';
   const options = {
-    body: data.body || 'You have a new study directive.',
-    icon: '/CortexAlarm/public/icon.svg',
-    badge: '/CortexAlarm/public/icon.svg',
-    tag: `cortex-${data.type || 'alert'}-${Date.now()}`,
+    body:             data.body || 'You have a new study directive.',
+    icon:             `${BASE}/public/icon.svg`,
+    badge:            `${BASE}/public/icon.svg`,
+    tag:              `cortex-${data.type || 'alert'}-${Date.now()}`,
     requireInteraction: true,
-    vibrate: [200, 100, 200, 100, 200],
+    vibrate:          [200, 100, 200, 100, 200],
     data: {
-      url: 'https://joshbond123.github.io/CortexAlarm/public/notifications.html',
-      id: data.id,
+      url:  `https://joshbond123.github.io${BASE}/public/notifications.html`,
       type: data.type,
     },
     actions: [
@@ -25,13 +25,14 @@ self.addEventListener('push', event => {
       { action: 'dismiss', title: 'Dismiss' },
     ],
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+
+  event.waitUntil(self.registration.showNotification(data.title || 'Cortex Alarm', options));
 });
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   if (event.action === 'dismiss') return;
-  const url = event.notification.data?.url || 'https://joshbond123.github.io/CortexAlarm/public/notifications.html';
+  const url = event.notification.data?.url || `https://joshbond123.github.io${BASE}/public/notifications.html`;
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
@@ -44,7 +45,7 @@ self.addEventListener('notificationclick', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('/storage/')) return; // always fresh
+  if (event.request.url.includes('supabase.co')) return; // never cache API calls
   event.respondWith(
     caches.match(event.request).then(cached => cached || fetch(event.request).catch(() => cached))
   );
