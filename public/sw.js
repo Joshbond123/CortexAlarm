@@ -11,13 +11,13 @@ self.addEventListener('push', event => {
 
   const options = {
     body:             data.body || 'You have a new study directive.',
-    icon:             `${BASE}/public/icon.svg`,
-    badge:            `${BASE}/public/icon.svg`,
+    icon:             `${BASE}/icon.svg`,
+    badge:            `${BASE}/icon.svg`,
     tag:              `cortex-${data.type || 'alert'}-${Date.now()}`,
     requireInteraction: true,
     vibrate:          [200, 100, 200, 100, 200],
     data: {
-      url:  `https://joshbond123.github.io${BASE}/public/notifications.html`,
+      url:  `https://joshbond123.github.io${BASE}/notifications.html`,
       type: data.type,
     },
     actions: [
@@ -32,7 +32,7 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   if (event.action === 'dismiss') return;
-  const url = event.notification.data?.url || `https://joshbond123.github.io${BASE}/public/notifications.html`;
+  const url = event.notification.data?.url || `https://joshbond123.github.io${BASE}/notifications.html`;
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
