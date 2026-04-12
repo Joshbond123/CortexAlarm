@@ -2,152 +2,197 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1a">
 <title>Cortex Alarm — Settings</title>
 <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
+<div class="app-shell">
 
-<aside class="sidebar">
-  <div class="sidebar-brand"><span class="icon">⊛</span><span>CORTEX_ALARM</span><span class="dot"></span></div>
-  <nav>
-    <div class="nav-section">Navigation</div>
-    <a class="nav-link" href="./index.html"><span class="icon">⬡</span><span>Dashboard</span></a>
-    <a class="nav-link" href="./notifications.html"><span class="icon">◈</span><span>Inbox</span></a>
-    <a class="nav-link" href="./timetable.html"><span class="icon">◫</span><span>Timetable</span></a>
-    <div class="nav-section">System</div>
-    <a class="nav-link active" href="./settings.html"><span class="icon">⚙</span><span>Settings</span></a>
-    <a class="nav-link" href="./keys.html"><span class="icon">⌗</span><span>API Keys</span></a>
-    <a class="nav-link" href="./device.html"><span class="icon">⌖</span><span>Device</span></a>
-    <a class="nav-link" href="./logs.html"><span class="icon">≡</span><span>Logs</span></a>
-  </nav>
-  <div class="sidebar-footer"><span class="status-dot"></span><span>SYS_ONLINE</span></div>
-</aside>
-
-<div class="main">
-  <div class="page-header">
-    <div class="page-title-wrap">
-      <div class="page-title">Settings</div>
-      <div class="page-subtitle">System configuration, notification times, and device management</div>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⊛</div>
+      <div><div class="brand-name">Cortex Alarm</div><div class="brand-sub">ND1 Study System</div></div>
+      <div class="brand-pulse"></div>
     </div>
-  </div>
-
-  <div class="page-content">
-    <div class="grid grid-2" style="gap:20px;align-items:start">
-
-      <!-- Left column -->
-      <div>
-        <div class="section-title">System Controls</div>
-        <div class="card mb-4">
-          <div class="toggle-row">
-            <div><div class="toggle-label">Cerebras AI</div><div class="toggle-desc">Generate smart, personalised study messages using AI</div></div>
-            <label class="switch"><input type="checkbox" id="ai-toggle"><span class="slider"></span></label>
-          </div>
-          <div class="toggle-row">
-            <div><div class="toggle-label">Push Notifications</div><div class="toggle-desc">Enable sending push alerts to subscribed devices</div></div>
-            <label class="switch"><input type="checkbox" id="notif-toggle"><span class="slider"></span></label>
-          </div>
-        </div>
-
-        <div class="section-title">Schedule Times</div>
-        <div class="card mb-4">
-          <div style="margin-bottom:14px">
-            <label>Morning Reminder Time (default 06:00)</label>
-            <input type="time" id="morning-time" value="06:00">
-          </div>
-          <div>
-            <label>Evening Reminder Time (default 18:00)</label>
-            <input type="time" id="evening-time" value="18:00">
-          </div>
-          <div style="margin-top:6px;color:var(--muted);font-size:.78rem">After-lecture alert is sent automatically 1 hour after the last lecture of the day.</div>
-        </div>
-
-        <div class="section-title">GitHub Integration</div>
-        <div class="card mb-4">
-          <label>Personal Access Token (PAT)</label>
-          <div style="display:flex;gap:8px;margin-bottom:8px">
-            <input type="password" id="gh-token" placeholder="github_pat_...">
-            <button class="btn btn-primary btn-sm" id="save-token-btn">Save</button>
-          </div>
-          <div style="font-size:.78rem;color:var(--muted)">Token is stored in your browser only. Needed to save settings and subscribe to notifications. Requires <code style="background:rgba(255,255,255,.06);padding:1px 4px;border-radius:3px">repo</code> scope.</div>
-          <div id="token-status" style="margin-top:8px"></div>
-        </div>
-
-        <button class="btn btn-primary" id="save-settings-btn" style="width:100%">
-          <span id="save-spinner" style="display:none">⟳ </span>Save Settings
-        </button>
+    <nav style="padding:8px;flex:1;overflow-y:auto">
+      <div class="nav-group"><div class="nav-group-label">Main</div>
+        <a class="nav-link" href="./index.html"><span class="nav-icon">⬡</span><span>Dashboard</span></a>
+        <a class="nav-link" href="./notifications.html"><span class="nav-icon">◈</span><span>Inbox</span></a>
+        <a class="nav-link" href="./timetable.html"><span class="nav-icon">◫</span><span>Timetable</span></a>
       </div>
+      <div class="nav-group"><div class="nav-group-label">System</div>
+        <a class="nav-link active" href="./settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+        <a class="nav-link" href="./keys.html"><span class="nav-icon">⌗</span><span>API Keys</span></a>
+        <a class="nav-link" href="./device.html"><span class="nav-icon">⌖</span><span>Device</span></a>
+        <a class="nav-link" href="./logs.html"><span class="nav-icon">≡</span><span>Logs</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-footer"><div class="sys-dot"></div><span class="sys-label">System Online</span></div>
+  </aside>
 
-      <!-- Right column -->
-      <div>
-        <div class="section-title">Push Notifications</div>
-        <div class="card mb-4">
-          <div id="sub-status-area" style="margin-bottom:16px"></div>
-          <button class="btn btn-primary" id="subscribe-btn" style="width:100%;margin-bottom:8px">
-            Subscribe This Device
+  <div class="main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-title">Settings</div>
+        <div class="page-subtitle">System configuration and device management</div>
+      </div>
+    </div>
+    <div class="page-divider"></div>
+
+    <div class="page-content">
+      <div class="grid grid-2" style="align-items:start;gap:20px">
+
+        <!-- Left -->
+        <div>
+          <div class="section-header mb-3"><div class="section-title">System Controls</div></div>
+          <div class="card mb-4">
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <div class="toggle-label">Cerebras AI</div>
+                <div class="toggle-desc">Generate personalised discipline messages using AI</div>
+              </div>
+              <label class="switch"><input type="checkbox" id="ai-toggle"><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <div class="toggle-label">Push Notifications</div>
+                <div class="toggle-desc">Send push alerts to subscribed devices</div>
+              </div>
+              <label class="switch"><input type="checkbox" id="notif-toggle"><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <div class="toggle-label">Post-Lecture Alert</div>
+                <div class="toggle-desc">Alert 1 hour after last lecture (weekdays only)</div>
+              </div>
+              <label class="switch"><input type="checkbox" id="afternoon-toggle"><span class="slider"></span></label>
+            </div>
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <div class="toggle-label">Weekend Reminders</div>
+                <div class="toggle-desc">Morning & evening reminders on Saturday and Sunday</div>
+              </div>
+              <label class="switch"><input type="checkbox" id="weekend-toggle"><span class="slider"></span></label>
+            </div>
+          </div>
+
+          <div class="section-header mb-3"><div class="section-title">Notification Schedule</div></div>
+          <div class="card mb-4">
+            <div class="form-group">
+              <label class="form-label">Morning Reminder</label>
+              <input type="time" class="form-input" id="morning-time" value="06:00">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Evening Reminder</label>
+              <input type="time" class="form-input" id="evening-time" value="18:00">
+            </div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:.76rem;color:var(--text-muted)">
+              Post-lecture alert triggers 1 hour after last lecture automatically. Weekend reminders use the same morning/evening times.
+            </div>
+          </div>
+
+          <button class="btn btn-primary w-full" id="save-settings-btn">
+            <span id="save-icon">⊛</span> Save Settings
           </button>
-          <button class="btn btn-danger btn-sm" id="unsubscribe-btn" style="width:100%;display:none">
-            Unsubscribe This Device
-          </button>
-          <div style="font-size:.78rem;color:var(--muted);margin-top:8px">
-            Subscribing registers this browser to receive push notifications. Your device info will be saved to the repo.
+        </div>
+
+        <!-- Right -->
+        <div>
+          <div class="section-header mb-3"><div class="section-title">GitHub Token</div></div>
+          <div class="card mb-4">
+            <div class="form-group">
+              <label class="form-label">Personal Access Token (PAT)</label>
+              <div class="input-row">
+                <input type="password" class="form-input" id="gh-token" placeholder="github_pat_...">
+                <button class="btn btn-primary btn-sm" id="save-token-btn" style="flex-shrink:0">Save</button>
+              </div>
+            </div>
+            <div id="token-status" style="margin-bottom:10px"></div>
+            <div style="font-size:.76rem;color:var(--text-muted);line-height:1.6">
+              Your PAT is stored locally in your browser. Required to save settings and subscriber data to the GitHub repo. Needs <code style="background:var(--surface);padding:1px 5px;border-radius:3px;font-size:.72rem">repo</code> scope.
+            </div>
+          </div>
+
+          <div class="section-header mb-3"><div class="section-title">Push Subscription</div></div>
+          <div class="card mb-4">
+            <div id="sub-status-area" style="margin-bottom:16px">
+              <div class="status-row"><div class="status-dot amber"></div><span style="font-size:.85rem">Checking...</span></div>
+            </div>
+            <button class="btn btn-primary w-full mb-2" id="subscribe-btn">Subscribe This Device</button>
+            <button class="btn btn-danger w-full btn-sm" id="unsubscribe-btn" style="display:none">Unsubscribe This Device</button>
+            <div style="font-size:.76rem;color:var(--text-muted);margin-top:10px;line-height:1.6">
+              Subscribing registers this browser to receive push notifications directly. Your device info is saved to the repo.
+            </div>
+          </div>
+
+          <div class="section-header mb-3"><div class="section-title">Test Notification</div></div>
+          <div class="card">
+            <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Send a test push to verify this device is working correctly.</p>
+            <button class="btn btn-ghost w-full" id="test-btn">⚡ Send Test Notification</button>
           </div>
         </div>
 
-        <div class="section-title">Notification Preview</div>
-        <div class="card">
-          <p style="font-size:.85rem;color:var(--muted);margin-bottom:14px">Test that notifications work by sending a sample alert to this device.</p>
-          <button class="btn btn-ghost" id="test-notif-btn" style="width:100%">Send Test Notification</button>
-        </div>
       </div>
-
     </div>
   </div>
 </div>
 
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a class="bnav-item" href="./index.html"><div class="bnav-icon">⬡</div><div class="bnav-label">Home</div></a>
+    <a class="bnav-item" href="./notifications.html"><div class="bnav-icon">◈</div><div class="bnav-label">Inbox</div></a>
+    <a class="bnav-item" href="./timetable.html"><div class="bnav-icon">◫</div><div class="bnav-label">Schedule</div></a>
+    <a class="bnav-item active" href="./settings.html"><div class="bnav-icon">⚙</div><div class="bnav-label">Settings</div></a>
+    <a class="bnav-item" href="./logs.html"><div class="bnav-icon">≡</div><div class="bnav-label">Logs</div></a>
+  </div>
+</nav>
+
 <div id="toast-container"></div>
 
 <script type="module">
-import { fetchStorage, saveJsonToRepo, subscribeToPush, getSavedSubscription, saveSubscription, clearSubscription, saveSubscriberToRepo, removeSubscriberFromRepo, toast } from './js/utils.js';
+import { fetchStorage, saveJsonToRepo, subscribeToPush, getSavedSubscription, saveSubscription, clearSubscription, saveSubscriberToRepo, removeSubscriberFromRepo, toast, fmtDate } from './js/utils.js';
 
 let settings = {};
-let savedSub = getSavedSubscription();
 
 async function load() {
-  settings = (await fetchStorage('settings')) || { aiEnabled: true, notificationsEnabled: true, morningTime:'06:00', eveningTime:'18:00' };
+  settings = (await fetchStorage('settings')) || { aiEnabled: true, notificationsEnabled: true, morningTime: '06:00', eveningTime: '18:00', afternoonTrigger: true, weekendReminders: true };
   document.getElementById('ai-toggle').checked = !!settings.aiEnabled;
   document.getElementById('notif-toggle').checked = !!settings.notificationsEnabled;
+  document.getElementById('afternoon-toggle').checked = settings.afternoonTrigger !== false;
+  document.getElementById('weekend-toggle').checked = settings.weekendReminders !== false;
   document.getElementById('morning-time').value = settings.morningTime || '06:00';
   document.getElementById('evening-time').value = settings.eveningTime || '18:00';
 
-  const token = localStorage.getItem('cortex_gh_token') || '';
+  const token = localStorage.getItem('cortex_gh_token');
   if (token) {
-    document.getElementById('gh-token').placeholder = '••••••• (saved)';
-    document.getElementById('token-status').innerHTML = '<span class="badge badge-green">✓ Token configured</span>';
+    document.getElementById('token-status').innerHTML = '<span class="badge badge-green">✓ Token saved in browser</span>';
   }
-
   updateSubUI();
 }
 
 function updateSubUI() {
+  const saved = getSavedSubscription();
   const area = document.getElementById('sub-status-area');
-  const btn = document.getElementById('subscribe-btn');
-  const unsub = document.getElementById('unsubscribe-btn');
-  savedSub = getSavedSubscription();
-  if (savedSub) {
-    area.innerHTML = `
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-        <span class="badge badge-green">● SUBSCRIBED</span>
-        <span class="badge badge-muted">${savedSub.browser || '—'}</span>
-        <span class="badge badge-muted">${savedSub.platform || '—'}</span>
+  const subBtn = document.getElementById('subscribe-btn');
+  const unsubBtn = document.getElementById('unsubscribe-btn');
+  if (saved) {
+    area.innerHTML = `<div style="margin-bottom:8px">
+      <div class="status-row mb-2"><div class="status-dot green"></div><strong style="font-size:.9rem">Subscribed</strong></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge badge-muted">${saved.browser||'—'}</span>
+        <span class="badge badge-muted">${saved.platform||'—'}</span>
+        <span class="badge badge-muted">${saved.timezone||'—'}</span>
       </div>
-      <div style="font-size:.78rem;color:var(--muted)">Device: ${savedSub.deviceName || '—'} · ${savedSub.timezone || '—'}</div>`;
-    btn.textContent = '↺ Re-subscribe';
-    unsub.style.display = 'block';
+    </div>`;
+    subBtn.textContent = '↺ Re-subscribe';
+    unsubBtn.style.display = 'block';
   } else {
-    area.innerHTML = '<span class="badge badge-muted">● NOT SUBSCRIBED</span>';
-    unsub.style.display = 'none';
-    btn.textContent = 'Subscribe This Device';
+    area.innerHTML = `<div class="status-row"><div class="status-dot red"></div><span style="font-size:.85rem;color:var(--text-muted)">Not subscribed</span></div>`;
+    unsubBtn.style.display = 'none';
+    subBtn.textContent = 'Subscribe This Device';
   }
 }
 
@@ -156,29 +201,32 @@ document.getElementById('save-token-btn').addEventListener('click', () => {
   if (!t) { toast('Enter a GitHub PAT first', 'error'); return; }
   localStorage.setItem('cortex_gh_token', t);
   document.getElementById('gh-token').value = '';
-  document.getElementById('gh-token').placeholder = '••••••• (saved)';
-  document.getElementById('token-status').innerHTML = '<span class="badge badge-green">✓ Token saved to browser</span>';
-  toast('GitHub token saved to browser storage', 'success');
+  document.getElementById('gh-token').placeholder = '•••••••• (saved)';
+  document.getElementById('token-status').innerHTML = '<span class="badge badge-green">✓ Token saved in browser</span>';
+  toast('GitHub token saved', 'success');
 });
 
 document.getElementById('save-settings-btn').addEventListener('click', async () => {
-  const spinner = document.getElementById('save-spinner');
-  spinner.style.display = 'inline';
+  const icon = document.getElementById('save-icon');
+  icon.className = 'spin'; icon.textContent = '⟳';
   settings.aiEnabled = document.getElementById('ai-toggle').checked;
   settings.notificationsEnabled = document.getElementById('notif-toggle').checked;
+  settings.afternoonTrigger = document.getElementById('afternoon-toggle').checked;
+  settings.weekendReminders = document.getElementById('weekend-toggle').checked;
   settings.morningTime = document.getElementById('morning-time').value;
   settings.eveningTime = document.getElementById('evening-time').value;
   settings.updatedAt = new Date().toISOString();
-  const res = await saveJsonToRepo('storage/settings.json', settings, 'chore: update settings');
-  spinner.style.display = 'none';
-  toast(res.ok ? 'Settings saved to repository' : 'No GitHub token — settings only saved locally', res.ok ? 'success' : 'info');
+  const r = await saveJsonToRepo('storage/settings.json', settings, 'chore: update settings');
+  icon.className = ''; icon.textContent = '⊛';
+  toast(r.ok ? 'Settings saved to repository' : 'No token — settings saved locally only', r.ok ? 'success' : 'info');
 });
 
 document.getElementById('subscribe-btn').addEventListener('click', async () => {
   const btn = document.getElementById('subscribe-btn');
   btn.disabled = true; btn.textContent = '⟳ Subscribing...';
   const result = await subscribeToPush();
-  if (!result.ok) { toast(result.error, 'error'); btn.disabled = false; updateSubUI(); return; }
+  btn.disabled = false;
+  if (!result.ok) { toast(result.error, 'error'); updateSubUI(); return; }
   const sub = {
     id: crypto.randomUUID(),
     endpoint: result.subscription.endpoint,
@@ -191,36 +239,35 @@ document.getElementById('subscribe-btn').addEventListener('click', async () => {
     active: true,
   };
   saveSubscription(sub);
-  savedSub = sub;
   updateSubUI();
-  btn.disabled = false;
-  const saveRes = await saveSubscriberToRepo(sub);
-  toast(saveRes.ok ? 'Device subscribed and saved to repo!' : 'Subscribed locally. Add GitHub token to sync.', saveRes.ok ? 'success' : 'info');
-  window.location.href = './device.html';
+  const r = await saveSubscriberToRepo(sub);
+  toast(r.ok ? 'Device subscribed and saved to repo!' : 'Subscribed! Add GitHub token to sync with repo.', r.ok ? 'success' : 'info');
+  if (r.ok) setTimeout(() => { window.location.href = './device.html'; }, 1200);
 });
 
 document.getElementById('unsubscribe-btn').addEventListener('click', async () => {
-  if (!savedSub) return;
+  const saved = getSavedSubscription();
+  if (!saved) return;
   if (!confirm('Unsubscribe this device from push notifications?')) return;
-  await removeSubscriberFromRepo(savedSub.id);
+  await removeSubscriberFromRepo(saved.id);
   clearSubscription();
   updateSubUI();
   toast('Device unsubscribed', 'success');
 });
 
-document.getElementById('test-notif-btn').addEventListener('click', async () => {
-  if (!savedSub) { toast('Subscribe this device first', 'error'); return; }
+document.getElementById('test-btn').addEventListener('click', async () => {
+  const saved = getSavedSubscription();
+  if (!saved) { toast('Subscribe this device first', 'error'); return; }
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') { toast('Notification permission denied', 'error'); return; }
   const reg = await navigator.serviceWorker.ready;
-  reg.showNotification('Cortex Alarm — Test Alert', {
-    body: 'System check successful. You are receiving notifications. Stay disciplined — no one will write your exams for you.',
-    icon: '/CortexAlarm/public/icon-192.png',
-    badge: '/CortexAlarm/public/icon-192.png',
+  reg.showNotification('Cortex Alarm — Test Alert ⚡', {
+    body: 'System verified. You are receiving push notifications. Stay focused — no one will write your exams for you.',
     tag: 'cortex-test',
     requireInteraction: false,
+    vibrate: [200, 100, 200],
   });
-  toast('Test notification sent to this device', 'success');
+  toast('Test notification sent!', 'success');
 });
 
 load();
