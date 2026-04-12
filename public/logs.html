@@ -1,134 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0f1a">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Cortex Alarm — Logs</title>
-<link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="/CortexAlarm/public/css/style.css"/>
+<link rel="manifest" href="/CortexAlarm/public/manifest.json"/>
 </head>
 <body>
-<div class="app-shell">
-
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">⊛</div>
-      <div><div class="brand-name">Cortex Alarm</div><div class="brand-sub">ND1 Study System</div></div>
-      <div class="brand-pulse"></div>
-    </div>
-    <nav style="padding:8px;flex:1;overflow-y:auto">
-      <div class="nav-group"><div class="nav-group-label">Main</div>
-        <a class="nav-link" href="./index.html"><span class="nav-icon">⬡</span><span>Dashboard</span></a>
-        <a class="nav-link" href="./notifications.html"><span class="nav-icon">◈</span><span>Inbox</span></a>
-        <a class="nav-link" href="./timetable.html"><span class="nav-icon">◫</span><span>Timetable</span></a>
-      </div>
-      <div class="nav-group"><div class="nav-group-label">System</div>
-        <a class="nav-link" href="./settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
-        <a class="nav-link" href="./keys.html"><span class="nav-icon">⌗</span><span>API Keys</span></a>
-        <a class="nav-link" href="./device.html"><span class="nav-icon">⌖</span><span>Device</span></a>
-        <a class="nav-link active" href="./logs.html"><span class="nav-icon">≡</span><span>Logs</span></a>
-      </div>
-    </nav>
-    <div class="sidebar-footer"><div class="sys-dot"></div><span class="sys-label">System Online</span></div>
-  </aside>
-
-  <div class="main">
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-brand"><h1>◈ Cortex Alarm</h1><p>ND1 CS — Study System</p></div>
+    <div id="sidebar-nav"></div>
+  </nav>
+  <main class="main-content">
     <div class="page-header">
-      <div class="page-header-left">
-        <div class="page-title">System Logs</div>
-        <div class="page-subtitle">Scheduler activity, notifications dispatched, and error trace</div>
-      </div>
-      <div class="page-actions">
-        <span class="badge badge-muted" id="log-count">0 entries</span>
-        <button class="btn btn-ghost btn-sm" id="refresh-btn">⟳ Refresh</button>
-      </div>
-    </div>
-    <div class="page-divider"></div>
-
-    <div class="page-content">
-      <div class="filter-tabs" id="filter-tabs" style="margin-bottom:16px">
-        <button class="filter-tab active" data-filter="all">All</button>
-        <button class="filter-tab" data-filter="info">Info</button>
-        <button class="filter-tab" data-filter="success">Success</button>
-        <button class="filter-tab" data-filter="warn">Warnings</button>
-        <button class="filter-tab" data-filter="error">Errors</button>
-      </div>
-
-      <div class="card" style="padding:0;overflow:hidden">
-        <div style="display:flex;padding:9px 16px;background:var(--surface);border-bottom:1px solid var(--border)">
-          <div class="mono" style="font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;min-width:140px">Timestamp</div>
-          <div class="mono" style="font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;min-width:60px">Level</div>
-          <div class="mono" style="font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;flex:1">Message</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2>System Logs</h2>
+          <p>Scheduler activity from GitHub Actions. Last 30 days kept.</p>
         </div>
-        <div id="log-list" style="max-height:68vh;overflow-y:auto">
-          <div class="empty-state" style="padding:40px"><div class="empty-icon">≡</div><div class="empty-title">Loading logs...</div></div>
+        <div style="display:flex;gap:8px;">
+          <select id="level-filter" class="form-select" style="width:auto;padding:8px 12px;">
+            <option value="">All Levels</option>
+            <option value="success">Success</option>
+            <option value="info">Info</option>
+            <option value="error">Error</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="loadLogs()">Refresh</button>
         </div>
       </div>
     </div>
-  </div>
+    <div class="card">
+      <div id="log-list"><div class="loading"><span class="spinner"></span>Loading…</div></div>
+    </div>
+  </main>
 </div>
+<nav class="bottom-nav"><div class="bottom-nav-inner" id="bottom-nav"></div></nav>
+<script src="/CortexAlarm/public/js/supabase-client.js"></script>
+<script src="/CortexAlarm/public/js/utils.js"></script>
+<script>
+utils.buildNav('logs');
+let allLogs = [];
 
-<!-- Bottom nav -->
-<nav class="bottom-nav">
-  <div class="bottom-nav-inner">
-    <a class="bnav-item" href="./index.html"><div class="bnav-icon">⬡</div><div class="bnav-label">Home</div></a>
-    <a class="bnav-item" href="./notifications.html"><div class="bnav-icon">◈</div><div class="bnav-label">Inbox</div></a>
-    <a class="bnav-item" href="./timetable.html"><div class="bnav-icon">◫</div><div class="bnav-label">Schedule</div></a>
-    <a class="bnav-item" href="./settings.html"><div class="bnav-icon">⚙</div><div class="bnav-label">Settings</div></a>
-    <a class="bnav-item active" href="./logs.html"><div class="bnav-icon">≡</div><div class="bnav-label">Logs</div></a>
-  </div>
-</nav>
+async function loadLogs() {
+  const list = document.getElementById('log-list');
+  list.innerHTML = '<div class="loading"><span class="spinner"></span>Loading…</div>';
+  try {
+    allLogs = await sb.select('logs', 'order=created_at.desc&limit=200') || [];
+    renderLogs();
+  } catch(err) {
+    list.innerHTML = `<div class="empty"><p>Error: ${err.message}</p></div>`;
+  }
+}
 
-<div id="toast-container"></div>
-
-<script type="module">
-import { fetchStorage, fmtDate, toast, esc } from './js/utils.js';
-
-let allLogs = [], activeFilter = 'all';
-
-const LEVEL_COLORS = { info:'var(--text-muted)', success:'var(--green)', warn:'var(--amber)', error:'var(--red)' };
-const LEVEL_LABELS = { info:'INFO', success:'OK', warn:'WARN', error:'ERR' };
-
-function render() {
-  const list = activeFilter === 'all' ? allLogs : allLogs.filter(l => l.level === activeFilter);
-  document.getElementById('log-count').textContent = `${list.length} entries`;
-  const el = document.getElementById('log-list');
-  if (!list.length) {
-    el.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-icon">≡</div><div class="empty-title">No log entries</div><div class="empty-desc">Entries appear after the scheduler runs</div></div>`;
+function renderLogs() {
+  const filter = document.getElementById('level-filter').value;
+  const shown  = filter ? allLogs.filter(l => l.level === filter) : allLogs;
+  const list   = document.getElementById('log-list');
+  if (!shown.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">◈</div><p>No logs yet. Scheduler runs every 5 minutes.</p></div>';
     return;
   }
-  el.innerHTML = list.map(l => {
-    const lvl = l.level || 'info';
-    return `<div class="log-entry">
-      <div class="log-time">${fmtDate(l.timestamp)}</div>
-      <div class="log-level ${lvl}" style="color:${LEVEL_COLORS[lvl]||LEVEL_COLORS.info}">${LEVEL_LABELS[lvl]||'INFO'}</div>
-      <div class="log-msg">${esc(l.message)}</div>
-    </div>`;
-  }).join('');
+  list.innerHTML = shown.map(l => `
+    <div class="log-item">
+      <div class="log-time">${utils.fmtTime(l.created_at)}</div>
+      <div class="log-msg">
+        <span class="log-level-${l.level}">[${l.level.toUpperCase()}]</span> ${l.message}
+        ${l.details ? `<div style="margin-top:4px;font-size:0.72rem;color:var(--text3);font-family:'JetBrains Mono',monospace;">${JSON.stringify(l.details)}</div>` : ''}
+      </div>
+    </div>`).join('');
 }
 
-document.getElementById('filter-tabs').addEventListener('click', e => {
-  const btn = e.target.closest('.filter-tab');
-  if (!btn) return;
-  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  activeFilter = btn.dataset.filter;
-  render();
-});
-
-document.getElementById('refresh-btn').addEventListener('click', async () => {
-  document.getElementById('refresh-btn').textContent = '⟳ Loading...';
-  allLogs = ([...(await fetchStorage('logs') || [])]).reverse();
-  render();
-  document.getElementById('refresh-btn').textContent = '⟳ Refresh';
-  toast('Logs refreshed', 'info');
-});
-
-async function load() {
-  allLogs = ([...(await fetchStorage('logs') || [])]).reverse();
-  render();
-}
-load().catch(() => toast('Failed to load logs', 'error'));
+document.getElementById('level-filter').addEventListener('change', renderLogs);
+loadLogs();
 </script>
 </body>
 </html>
