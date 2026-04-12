@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cortex Alarm — Connected Device</title>
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand"><span class="icon">⊛</span><span>CORTEX_ALARM</span><span class="dot"></span></div>
+  <nav>
+    <div class="nav-section">Navigation</div>
+    <a class="nav-link" href="./index.html"><span class="icon">⬡</span><span>Dashboard</span></a>
+    <a class="nav-link" href="./notifications.html"><span class="icon">◈</span><span>Inbox</span></a>
+    <a class="nav-link" href="./timetable.html"><span class="icon">◫</span><span>Timetable</span></a>
+    <div class="nav-section">System</div>
+    <a class="nav-link" href="./settings.html"><span class="icon">⚙</span><span>Settings</span></a>
+    <a class="nav-link" href="./keys.html"><span class="icon">⌗</span><span>API Keys</span></a>
+    <a class="nav-link active" href="./device.html"><span class="icon">⌖</span><span>Device</span></a>
+    <a class="nav-link" href="./logs.html"><span class="icon">≡</span><span>Logs</span></a>
+  </nav>
+  <div class="sidebar-footer"><span class="status-dot"></span><span>SYS_ONLINE</span></div>
+</aside>
+
+<div class="main">
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="page-title">Connected Device</div>
+      <div class="page-subtitle">Browser information and push notification node details</div>
+    </div>
+    <div style="padding-bottom:20px">
+      <span class="badge badge-blue" id="sub-status-badge">Checking...</span>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="grid grid-2" style="align-items:start;gap:20px">
+
+      <!-- This device -->
+      <div>
+        <div class="section-title">This Device</div>
+        <div class="device-card">
+          <div class="device-field">
+            <div class="device-field-label">Browser</div>
+            <div class="device-field-value" id="det-browser">—</div>
+          </div>
+          <div class="device-field">
+            <div class="device-field-label">Platform / OS</div>
+            <div class="device-field-value" id="det-platform">—</div>
+          </div>
+          <div class="device-field">
+            <div class="device-field-label">Device Name</div>
+            <div class="device-field-value" id="det-device">—</div>
+          </div>
+          <div class="device-field">
+            <div class="device-field-label">Timezone</div>
+            <div class="device-field-value" id="det-tz">—</div>
+          </div>
+          <div class="device-field">
+            <div class="device-field-label">Language</div>
+            <div class="device-field-value" id="det-lang">—</div>
+          </div>
+          <div class="device-field">
+            <div class="device-field-label">Screen Resolution</div>
+            <div class="device-field-value" id="det-screen">—</div>
+          </div>
+          <div class="device-field">
+            <div class="device-field-label">Push Support</div>
+            <div class="device-field-value" id="det-push">—</div>
+          </div>
+          <div class="device-field">
+            <div class="device-field-label">Notification Permission</div>
+            <div class="device-field-value" id="det-perm">—</div>
+          </div>
+          <div class="device-field">
+            <div class="device-field-label">Subscribed At</div>
+            <div class="device-field-value" id="det-subtime">—</div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+            <a href="./settings.html" class="btn btn-primary btn-sm">Subscribe / Change</a>
+            <button class="btn btn-ghost btn-sm" id="refresh-btn">⟳ Refresh</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- All registered devices -->
+      <div>
+        <div class="section-title">All Registered Nodes</div>
+        <div id="all-devices-list">
+          <div class="empty"><div class="empty-icon">⌖</div><div class="empty-text">Loading devices...</div></div>
+        </div>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:10px">Devices registered across all browsers. Only active nodes receive notifications.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { fetchStorage, getSavedSubscription, detectDevice, fmtDate, removeSubscriberFromRepo, clearSubscription, toast } from './js/utils.js';
+
+function load() {
+  const info = detectDevice();
+  document.getElementById('det-browser').textContent = info.browser;
+  document.getElementById('det-platform').textContent = info.platform;
+  document.getElementById('det-device').textContent = info.deviceName;
+  document.getElementById('det-tz').textContent = info.timezone;
+  document.getElementById('det-lang').textContent = navigator.language;
+  document.getElementById('det-screen').textContent = `${screen.width} × ${screen.height}`;
+  document.getElementById('det-push').innerHTML = ('PushManager' in window)
+    ? '<span class="badge badge-green">Supported</span>'
+    : '<span class="badge badge-red">Not supported</span>';
+  document.getElementById('det-perm').innerHTML = formatPerm(Notification.permission);
+
+  const saved = getSavedSubscription();
+  if (saved) {
+    document.getElementById('sub-status-badge').innerHTML = '● SUBSCRIBED';
+    document.getElementById('sub-status-badge').className = 'badge badge-green';
+    document.getElementById('det-subtime').textContent = fmtDate(saved.subscribedAt) || '—';
+  } else {
+    document.getElementById('sub-status-badge').textContent = '● NOT SUBSCRIBED';
+    document.getElementById('sub-status-badge').className = 'badge badge-muted';
+    document.getElementById('det-subtime').textContent = 'Not subscribed';
+  }
+
+  loadAllDevices();
+}
+
+function formatPerm(p) {
+  if (p === 'granted') return '<span class="badge badge-green">GRANTED</span>';
+  if (p === 'denied') return '<span class="badge badge-red">DENIED</span>';
+  return '<span class="badge badge-amber">NOT SET</span>';
+}
+
+async function loadAllDevices() {
+  const subs = (await fetchStorage('subscribers')) || [];
+  const el = document.getElementById('all-devices-list');
+  const saved = getSavedSubscription();
+
+  if (!subs.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⌖</div><div class="empty-text">No registered nodes</div></div>`;
+    return;
+  }
+
+  el.innerHTML = subs.map(s => {
+    const isThis = saved && saved.endpoint === s.endpoint;
+    return `<div class="card mb-4" style="border-color:${s.active ? (isThis ? 'rgba(34,197,94,.4)' : 'rgba(30,45,69,1)') : 'rgba(239,68,68,.2)'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-weight:600;font-size:.9rem">${escHtml(s.deviceName || 'Unknown Device')} ${isThis ? '<span class="badge badge-green" style="margin-left:6px">THIS DEVICE</span>' : ''}</div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${escHtml(s.browser||'—')} · ${escHtml(s.platform||'—')}</div>
+        </div>
+        <span class="badge ${s.active ? 'badge-green' : 'badge-red'}">${s.active ? 'ACTIVE' : 'INACTIVE'}</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="badge badge-muted">🕐 ${fmtDate(s.subscribedAt)}</span>
+        <span class="badge badge-muted">⏱ ${escHtml(s.timezone || '—')}</span>
+      </div>
+      ${isThis ? `<button class="btn btn-danger btn-sm" onclick="unsubThis('${s.id}')">Unsubscribe this device</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+window.unsubThis = async (id) => {
+  if (!confirm('Unsubscribe this device?')) return;
+  await removeSubscriberFromRepo(id);
+  clearSubscription();
+  toast('Unsubscribed', 'success');
+  load();
+};
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+document.getElementById('refresh-btn').addEventListener('click', load);
+load();
+</script>
+</body>
+</html>
