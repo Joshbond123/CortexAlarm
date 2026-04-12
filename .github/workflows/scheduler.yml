@@ -4,44 +4,31 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
-    inputs:
-      force_type:
-        description: "Force notification type (morning/afternoon/evening/test)"
-        required: false
-        default: ""
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   run-scheduler:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      CEREBRAS_API_KEYS:    ${{ secrets.CEREBRAS_API_KEYS }}
 
-      - name: Set up Node.js 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Install scheduler dependencies
-        run: |
-          cd scheduler
-          npm install
+        run: cd scheduler && npm install
 
       - name: Run scheduler
         run: node scheduler/index.js
-
-      - name: Commit updated storage files
-        run: |
-          git config user.name "Cortex Alarm Bot"
-          git config user.email "cortexalarm@study.app"
-          git add storage/
-          git diff --staged --quiet || git commit -m "chore: scheduler run [$(date -u +%Y-%m-%dT%H:%M:%SZ)]"
-          git push
-        continue-on-error: true
