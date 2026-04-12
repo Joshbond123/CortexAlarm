@@ -2,13 +2,13 @@
   "name": "Cortex Alarm",
   "short_name": "Cortex",
   "description": "AI-powered study discipline notifications for ND1 Computer Science students",
-  "start_url": "/CortexAlarm/public/index.html",
+  "start_url": "/CortexAlarm/index.html",
   "scope": "/CortexAlarm/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#080d1a",
   "theme_color": "#0e1628",
   "icons": [
-    { "src": "/CortexAlarm/public/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/CortexAlarm/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }
