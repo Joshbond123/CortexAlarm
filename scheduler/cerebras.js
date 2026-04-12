@@ -1,90 +1,97 @@
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
+// Cerebras AI client — gpt-oss-120b with key rotation
+import { db } from './supabase.js';
 
-const STORAGE_DIR = join(process.cwd(), "storage");
-const KEYS_FILE = join(STORAGE_DIR, "api_keys.json");
+let rotationIndex = 0;
 
-let keyIndex = 0;
-
-function getKeys() {
-  if (!existsSync(KEYS_FILE)) return [];
-  try { return JSON.parse(readFileSync(KEYS_FILE, "utf-8")); }
-  catch { return []; }
+async function getActiveKeys() {
+  try {
+    const rows = await db.select('api_keys', 'active=eq.true&order=created_at.asc');
+    return Array.isArray(rows) ? rows : [];
+  } catch (err) {
+    console.error('[AI] Failed to fetch API keys from Supabase:', err.message);
+    // Fall back to environment variable
+    const envKeys = (process.env.CEREBRAS_API_KEYS || '').split(',').map(k => k.trim()).filter(Boolean);
+    return envKeys.map((k, i) => ({ id: `env-${i}`, key: k, requests: 0, success: 0, fail: 0 }));
+  }
 }
 
-function saveKeys(keys) {
-  writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2));
+async function updateKeyStats(id, success) {
+  if (id.startsWith('env-')) return; // skip env fallback keys
+  try {
+    const rows = await db.select('api_keys', `id=eq.${id}`);
+    if (!rows?.length) return;
+    const k = rows[0];
+    await db.update('api_keys', `id=eq.${id}`, {
+      requests: (k.requests || 0) + 1,
+      success:  (k.success  || 0) + (success ? 1 : 0),
+      fail:     (k.fail     || 0) + (success ? 0 : 1),
+      last_used: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[AI] Failed to update key stats:', err.message);
+  }
 }
 
 export async function generateMessage(prompt) {
-  const allKeys = getKeys();
-  const activeKeys = allKeys.filter((k) => k.active);
-  if (!activeKeys.length) {
-    console.log("[AI] No active Cerebras API keys. Using default message.");
+  const keys = await getActiveKeys();
+  if (!keys.length) {
+    console.log('[AI] No active Cerebras keys — skipping AI generation.');
     return null;
   }
 
-  const startIndex = keyIndex % activeKeys.length;
+  const start = rotationIndex % keys.length;
 
-  for (let attempts = 0; attempts < activeKeys.length; attempts++) {
-    const idx = (startIndex + attempts) % activeKeys.length;
-    const keyEntry = activeKeys[idx];
-    keyIndex = (startIndex + attempts + 1) % activeKeys.length;
-
-    // Update stats
-    const all = getKeys();
-    const k = all.find((x) => x.id === keyEntry.id);
-    if (k) {
-      k.requests = (k.requests || 0) + 1;
-      k.lastUsed = new Date().toISOString();
-      saveKeys(all);
-    }
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const idx = (start + attempt) % keys.length;
+    const entry = keys[idx];
+    rotationIndex = (start + attempt + 1) % keys.length;
 
     try {
-      const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
-        method: "POST",
+      const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${keyEntry.key}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${entry.key}`,
         },
         body: JSON.stringify({
-          model: "llama3.1-8b",
+          model: 'gpt-oss-120b',
           messages: [
             {
-              role: "system",
+              role: 'system',
               content:
-                "You are a strict but supportive academic discipline coach for ND1 Computer Science students. Write professional, direct, motivational messages (2-3 sentences max). Always remind students that no one will teach them in the exam hall. No emojis. Be real, not generic.",
+                'You are a strict, professional academic discipline coach for ND1 Computer Science students in Nigeria. Write 2-3 direct, motivational sentences. Remind them that no one will teach them in the exam hall. Be real and impactful — not generic or cheerful. Never use emojis.',
             },
-            { role: "user", content: prompt },
+            { role: 'user', content: prompt },
           ],
           max_tokens: 180,
           temperature: 0.75,
         }),
+        signal: AbortSignal.timeout(20000),
       });
 
-      const all2 = getKeys();
-      const k2 = all2.find((x) => x.id === keyEntry.id);
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = null; }
 
-      if (!response.ok) {
-        const err = await response.text().catch(() => "");
-        console.error(`[AI] Key ${keyEntry.id} failed: HTTP ${response.status} — ${err.slice(0, 80)}`);
-        if (k2) { k2.fail = (k2.fail || 0) + 1; saveKeys(all2); }
+      if (!res.ok) {
+        console.error(`[AI] Key ${entry.id.slice(0,8)} failed: HTTP ${res.status} — ${text.slice(0,80)}`);
+        await updateKeyStats(entry.id, false);
         continue;
       }
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content?.trim();
-      if (k2) { k2.success = (k2.success || 0) + 1; saveKeys(all2); }
-      if (content) { console.log(`[AI] Generated with key ${keyEntry.id.slice(0,8)}...`); return content; }
-      continue;
+      const content = data?.choices?.[0]?.message?.content?.trim();
+      if (!content) { await updateKeyStats(entry.id, false); continue; }
+
+      await updateKeyStats(entry.id, true);
+      console.log(`[AI] Generated with key ${entry.id.slice(0,8)}...`);
+      return content;
+
     } catch (err) {
-      console.error(`[AI] Request error for key ${keyEntry.id}: ${err.message}`);
-      const all3 = getKeys();
-      const k3 = all3.find((x) => x.id === keyEntry.id);
-      if (k3) { k3.fail = (k3.fail || 0) + 1; saveKeys(all3); }
+      console.error(`[AI] Request error for key ${entry.id.slice(0,8)}: ${err.message}`);
+      await updateKeyStats(entry.id, false);
     }
   }
 
-  console.log("[AI] All keys exhausted. Using default message.");
+  console.log('[AI] All keys exhausted — using default message.');
   return null;
 }
