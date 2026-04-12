@@ -1,0 +1,5 @@
+node_modules/
+scheduler/node_modules/
+*.log
+.DS_Store
+.env
