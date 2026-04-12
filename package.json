@@ -1,0 +1,10 @@
+{
+  "name": "cortex-alarm",
+  "version": "1.0.0",
+  "description": "AI-powered study discipline notification system for ND1 students",
+  "type": "module",
+  "scripts": {
+    "install-scheduler": "cd scheduler && npm install",
+    "scheduler": "node scheduler/index.js"
+  }
+}
