@@ -33,7 +33,7 @@
         <div class="toggle-row">
           <div class="toggle-info">
             <h4>AI-Generated Messages</h4>
-            <p>Use Cerebras gpt-oss-120b to personalize notification content</p>
+            <p>Use Cerebras llama3.1-8b to personalize notification content</p>
           </div>
           <label class="toggle">
             <input type="checkbox" id="toggle-ai"/>
@@ -103,7 +103,7 @@
       <div class="section-title">Cerebras API Keys</div>
       <div class="card">
         <p style="font-size:0.82rem;color:var(--text2);margin-bottom:16px;">
-          Keys are rotated automatically. The scheduler uses <strong>gpt-oss-120b</strong>.
+          Keys are rotated automatically. The scheduler uses <strong>llama3.1-8b</strong>.
           Values are write-only — they cannot be read back after saving.
         </p>
 
@@ -123,12 +123,13 @@
       <div class="card device-card">
         <div class="device-icon" id="device-icon">📱</div>
         <div id="device-status" class="device-status">Checking subscription status…</div>
-        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
           <button class="btn btn-primary"  id="btn-subscribe"   style="display:none;">Subscribe to Notifications</button>
-          <button class="btn btn-warning"  id="btn-test"        style="display:none;">Send Test Notification</button>
+          <button class="btn btn-warning"  id="btn-test"        style="display:none;">Send AI Test Notification</button>
           <button class="btn btn-danger"   id="btn-unsubscribe" style="display:none;">Unsubscribe</button>
         </div>
-        <p style="font-size:0.72rem;color:var(--text3);">
+        <div id="test-status" style="font-size:0.78rem;color:var(--text3);text-align:center;min-height:20px;"></div>
+        <p style="font-size:0.72rem;color:var(--text3);margin-top:8px;">
           Multiple devices can subscribe simultaneously. Requires browser permission.
         </p>
       </div>
@@ -156,9 +157,10 @@
 utils.buildNav('settings');
 
 const SW_PATH = '/CortexAlarm/sw.js';
+const CEREBRAS_URL = 'https://api.cerebras.ai/v1/chat/completions';
 
-// Hardcoded VAPID public key (matches Supabase record id=1)
-const VAPID_PUBLIC_KEY = 'QSCTNYF1NdeJ4hugtMMPg-GxgeugdTzZpN1mcaKIFlPduDAO09-kx6YeT31tZwJSay-zJpK5Ul4f8XR2xk5rmg';
+// Correct 87-char VAPID public key (65 bytes, starts with 0x04 uncompressed EC point)
+const VAPID_PUBLIC_KEY = 'BMKr2VJd2Wtsy3RltYElXqYxN4n3lRREsdm6nN_6d4iOhJQfYoyKGbEuv2KJU3BgeMcNggAH-k_DVz5RT7tdZNo';
 
 // ── Load settings ─────────────────────────────────────────────────
 async function loadSettings() {
@@ -226,7 +228,7 @@ async function loadKeys() {
             <span>Requests: <strong>${k.requests}</strong></span>
             <span style="color:var(--green)">✓ ${k.success}</span>
             <span style="color:var(--red)">✗ ${k.fail}</span>
-            ${k.last_used ? `<span>Last: ${utils.timeAgo(k.last_used)}</span>` : ''}
+            ${k.last_used ? `<span>Last used: ${utils.timeAgo(k.last_used)}</span>` : ''}
           </div>
         </div>
         <div class="key-actions">
@@ -295,20 +297,61 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
+// ── Cerebras AI message generator (browser-side) ─────────────────
+async function generateAIMessage() {
+  try {
+    const keys = await sb.select('api_keys', 'active=eq.true&select=key&limit=1');
+    if (!keys?.length) return null;
+    const apiKey = keys[0].key;
+
+    const day = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',weekday:'long'}).format(new Date());
+    const hour = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',hour:'numeric',hour12:false}).format(new Date());
+    const period = parseInt(hour) < 12 ? 'morning' : parseInt(hour) < 17 ? 'afternoon' : 'evening';
+
+    const res = await fetch(CEREBRAS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama3.1-8b',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a strict academic discipline coach for ND1 Computer Science students in Nigeria. Write 2 sharp, direct motivational sentences. Be real and impactful. No emojis, no fluff.',
+          },
+          {
+            role: 'user',
+            content: `It is ${period} on ${day}. Write a push notification reminder to study and stay disciplined.`,
+          },
+        ],
+        max_tokens: 100,
+        temperature: 0.8,
+      }),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content?.trim() || null;
+  } catch (err) {
+    console.error('[AI] Test generation failed:', err.message);
+    return null;
+  }
+}
+
 // ── Push subscription state ───────────────────────────────────────
 async function checkSubscription() {
-  const icon   = document.getElementById('device-icon');
-  const status = document.getElementById('device-status');
-  const subBtn = document.getElementById('btn-subscribe');
+  const icon    = document.getElementById('device-icon');
+  const status  = document.getElementById('device-status');
+  const subBtn  = document.getElementById('btn-subscribe');
   const testBtn = document.getElementById('btn-test');
-  const unBtn  = document.getElementById('btn-unsubscribe');
+  const unBtn   = document.getElementById('btn-unsubscribe');
 
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     icon.textContent  = '🚫';
     status.textContent = 'Push notifications are not supported in this browser.';
-    subBtn.style.display = 'none';
-    testBtn.style.display = 'none';
-    unBtn.style.display  = 'none';
+    subBtn.style.display = testBtn.style.display = unBtn.style.display = 'none';
     return;
   }
 
@@ -332,34 +375,48 @@ async function checkSubscription() {
     }
   } catch (err) {
     icon.textContent   = '⚠️';
-    status.textContent = 'Could not check subscription: ' + err.message;
+    status.textContent = 'Could not check status: ' + err.message;
+    console.error('[SW]', err);
   }
 }
 
 // ── Subscribe ─────────────────────────────────────────────────────
 document.getElementById('btn-subscribe').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-subscribe');
+  const btn    = document.getElementById('btn-subscribe');
+  const status = document.getElementById('device-status');
   btn.disabled = true;
-  btn.textContent = 'Subscribing…';
+  btn.textContent = 'Requesting permission…';
+
   try {
+    if (!('Notification' in window)) throw new Error('Notifications are not supported in this browser.');
+
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') throw new Error('Notification permission denied. Please allow notifications in your browser settings.');
+    if (perm !== 'granted') throw new Error('Permission denied. Please allow notifications in your browser settings and try again.');
+
+    btn.textContent = 'Subscribing…';
 
     const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
+    let sub;
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    } catch (pushErr) {
+      console.error('[PUSH] subscribe error:', pushErr);
+      throw new Error('Could not subscribe: ' + pushErr.message);
+    }
 
     const p256dh  = btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh'))));
     const authStr = btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth'))));
 
     const ua = navigator.userAgent;
     let deviceName = 'Desktop Browser';
-    if (/Android/i.test(ua))        deviceName = 'Android Device';
-    else if (/iPhone|iPad/i.test(ua)) deviceName = 'iOS Device';
-    else if (/Mobile/i.test(ua))      deviceName = 'Mobile Device';
+    if (/Android/i.test(ua))          deviceName = 'Android Device';
+    else if (/iPhone|iPad/i.test(ua))  deviceName = 'iOS Device';
+    else if (/Mobile/i.test(ua))       deviceName = 'Mobile Device';
 
+    btn.textContent = 'Saving…';
     await sb.insert('subscribers', {
       endpoint: sub.endpoint,
       p256dh,
@@ -373,36 +430,55 @@ document.getElementById('btn-subscribe').addEventListener('click', async () => {
     await loadDevices();
   } catch (err) {
     utils.toast(err.message, 'error');
+    console.error('[SUB]', err);
   } finally {
     btn.disabled = false;
     btn.textContent = 'Subscribe to Notifications';
   }
 });
 
-// ── Test Notification ─────────────────────────────────────────────
+// ── AI Test Notification ──────────────────────────────────────────
 document.getElementById('btn-test').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-test');
+  const btn        = document.getElementById('btn-test');
+  const testStatus = document.getElementById('test-status');
   btn.disabled = true;
-  btn.textContent = 'Sending…';
+  btn.textContent  = 'Generating AI message…';
+  testStatus.textContent = 'Calling Cerebras llama3.1-8b…';
+
   try {
-    const perm = Notification.permission;
-    if (perm !== 'granted') throw new Error('Notifications are not permitted.');
+    if (Notification.permission !== 'granted') throw new Error('Notification permission not granted.');
+
+    const aiMessage = await generateAIMessage();
+    const body = aiMessage || 'Stay disciplined. Every hour of focused study compounds into the engineer you are becoming.';
+
+    if (aiMessage) {
+      testStatus.textContent = '✓ AI message generated';
+    } else {
+      testStatus.textContent = '⚠ AI unavailable — using default message';
+    }
+
+    btn.textContent = 'Showing notification…';
 
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('📚 Cortex Alarm — Test', {
-      body: 'This is a test notification from your Cortex Alarm study system. Everything is working correctly!',
-      icon: '/CortexAlarm/icon.svg',
-      badge: '/CortexAlarm/icon.svg',
-      tag: 'cortex-test',
+    await reg.showNotification('📚 Cortex Alarm — Study Alert', {
+      body,
+      icon:              '/CortexAlarm/icon.svg',
+      badge:             '/CortexAlarm/icon.svg',
+      tag:               'cortex-test',
       requireInteraction: false,
       data: { url: 'https://joshbond123.github.io/CortexAlarm/notifications.html' },
     });
-    utils.toast('Test notification sent!');
+
+    utils.toast(aiMessage ? 'AI notification sent!' : 'Notification sent (default message)');
+    setTimeout(() => testStatus.textContent = '', 5000);
   } catch (err) {
     utils.toast('Test failed: ' + err.message, 'error');
+    testStatus.textContent = '✗ ' + err.message;
+    setTimeout(() => testStatus.textContent = '', 5000);
+    console.error('[TEST]', err);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Send Test Notification';
+    btn.textContent = 'Send AI Test Notification';
   }
 });
 
