@@ -1,24 +1,28 @@
-// Cortex Alarm — Service Worker v2
+// Cortex Alarm — Service Worker v3
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => event.waitUntil(clients.claim()));
 
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; }
-  catch { data = { title: 'Cortex Alarm', body: event.data ? event.data.text() : 'New notification' }; }
+  catch { data = { title: 'Cortex Alarm', body: event.data ? event.data.text() : 'Study reminder.' }; }
 
   const title = data.title || 'Cortex Alarm';
   const options = {
     body: data.body || 'You have a new study directive.',
-    icon: '/CortexAlarm/public/icon-192.png',
-    badge: '/CortexAlarm/public/icon-192.png',
-    tag: data.tag || `cortex-${data.type || 'alert'}`,
+    icon: '/CortexAlarm/public/icon.svg',
+    badge: '/CortexAlarm/public/icon.svg',
+    tag: `cortex-${data.type || 'alert'}-${Date.now()}`,
     requireInteraction: true,
-    vibrate: [200, 100, 200],
-    data: { url: 'https://joshbond123.github.io/CortexAlarm/public/notifications.html', id: data.id, type: data.type },
+    vibrate: [200, 100, 200, 100, 200],
+    data: {
+      url: 'https://joshbond123.github.io/CortexAlarm/public/notifications.html',
+      id: data.id,
+      type: data.type,
+    },
     actions: [
-      { action: 'view', title: '📖 View' },
-      { action: 'dismiss', title: '✕ Dismiss' },
+      { action: 'view', title: 'View' },
+      { action: 'dismiss', title: 'Dismiss' },
     ],
   };
   event.waitUntil(self.registration.showNotification(title, options));
@@ -40,7 +44,7 @@ self.addEventListener('notificationclick', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('/storage/')) return;
+  if (event.request.url.includes('/storage/')) return; // always fresh
   event.respondWith(
     caches.match(event.request).then(cached => cached || fetch(event.request).catch(() => cached))
   );
