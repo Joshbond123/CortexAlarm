@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cortex Alarm — Inbox</title>
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand"><span class="icon">⊛</span><span>CORTEX_ALARM</span><span class="dot"></span></div>
+  <nav>
+    <div class="nav-section">Navigation</div>
+    <a class="nav-link" href="./index.html"><span class="icon">⬡</span><span>Dashboard</span></a>
+    <a class="nav-link active" href="./notifications.html"><span class="icon">◈</span><span>Inbox</span></a>
+    <a class="nav-link" href="./timetable.html"><span class="icon">◫</span><span>Timetable</span></a>
+    <div class="nav-section">System</div>
+    <a class="nav-link" href="./settings.html"><span class="icon">⚙</span><span>Settings</span></a>
+    <a class="nav-link" href="./keys.html"><span class="icon">⌗</span><span>API Keys</span></a>
+    <a class="nav-link" href="./device.html"><span class="icon">⌖</span><span>Device</span></a>
+    <a class="nav-link" href="./logs.html"><span class="icon">≡</span><span>Logs</span></a>
+  </nav>
+  <div class="sidebar-footer"><span class="status-dot"></span><span>SYS_ONLINE</span></div>
+</aside>
+
+<div class="main">
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="page-title">Notification Inbox</div>
+      <div class="page-subtitle">All transmitted study directives and alerts</div>
+    </div>
+    <div style="padding-bottom:20px;display:flex;gap:8px;align-items:center">
+      <span class="badge badge-blue" id="unread-badge">0 Unread</span>
+      <button class="btn btn-ghost btn-sm" id="mark-all-btn">Mark all read</button>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm filter-btn active" data-filter="all">All</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="morning">Morning</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="afternoon">Afternoon</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="evening">Evening</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="manual">Manual</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="unread">Unread only</button>
+    </div>
+
+    <div id="notif-list">
+      <div class="empty"><div class="empty-icon">◈</div><div class="empty-text">Loading transmissions...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Read modal -->
+<div id="read-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="rm-title"></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="rm-meta"></div>
+    <div class="modal-body" id="rm-body"></div>
+    <button class="btn btn-ghost modal-close" id="rm-close">Close</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { fetchStorage, saveJsonToRepo, fmtDate, timeAgo, NOTIF_ICONS, toast } from './js/utils.js';
+
+let allNotifs = [];
+let activeFilter = 'all';
+
+const NOTIF_ICON_HTML = { morning:'☀', afternoon:'📚', evening:'🌙', manual:'⚡' };
+
+function renderList(filter) {
+  let list = allNotifs;
+  if (filter === 'unread') list = list.filter(n => !n.read);
+  else if (filter !== 'all') list = list.filter(n => n.type === filter);
+
+  const el = document.getElementById('notif-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">◈</div><div class="empty-text">No transmissions found</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(n => {
+    const ic = NOTIF_ICONS[n.type] || NOTIF_ICONS.manual;
+    return `<div class="notif-item ${n.read ? '' : 'unread'} fade-in" data-id="${n.id}" data-type="${n.type}">
+      <div class="notif-icon ${ic.cls}">${NOTIF_ICON_HTML[n.type] || '⚡'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="notif-title">${escHtml(n.title)}</div>
+        <div class="notif-preview">${escHtml(n.body)}</div>
+        <div class="notif-meta">${fmtDate(n.sentAt)} · <span class="badge badge-${typeBadge(n.type)}">${n.type}</span>${n.aiGenerated ? ' · <span class="badge badge-blue">AI</span>' : ''}</div>
+      </div>
+      ${!n.read ? '<div style="flex-shrink:0"><span class="badge badge-blue">NEW</span></div>' : ''}
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.notif-item').forEach(el => {
+    el.addEventListener('click', () => openNotif(el.dataset.id));
+  });
+}
+
+function typeBadge(t) {
+  return { morning:'amber', afternoon:'blue', evening:'muted', manual:'green' }[t] || 'muted';
+}
+
+function escHtml(s) {
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function openNotif(id) {
+  const n = allNotifs.find(x => x.id === id);
+  if (!n) return;
+  document.getElementById('rm-title').textContent = n.title;
+  document.getElementById('rm-meta').innerHTML = `
+    <span class="badge badge-${typeBadge(n.type)}">${n.type}</span>
+    <span class="badge badge-muted">${fmtDate(n.sentAt)}</span>
+    ${n.aiGenerated ? '<span class="badge badge-blue">AI-generated</span>' : ''}
+    ${n.read ? '' : '<span class="badge badge-blue">UNREAD</span>'}`;
+  document.getElementById('rm-body').textContent = n.body;
+  document.getElementById('read-modal').classList.add('open');
+  if (!n.read) markRead(id);
+}
+
+async function markRead(id) {
+  const n = allNotifs.find(x => x.id === id);
+  if (!n || n.read) return;
+  n.read = true;
+  updateUnread();
+  renderList(activeFilter);
+  await saveJsonToRepo('storage/notifications.json', allNotifs, 'chore: mark notification read');
+}
+
+async function markAll() {
+  allNotifs.forEach(n => n.read = true);
+  updateUnread();
+  renderList(activeFilter);
+  const ok = await saveJsonToRepo('storage/notifications.json', allNotifs, 'chore: mark all notifications read');
+  toast(ok.ok ? 'All marked as read' : 'Saved locally — push to repo to persist', ok.ok ? 'success' : 'info');
+}
+
+function updateUnread() {
+  const u = allNotifs.filter(n => !n.read).length;
+  document.getElementById('unread-badge').textContent = `${u} Unread`;
+}
+
+async function load() {
+  allNotifs = (await fetchStorage('notifications')) || [];
+  updateUnread();
+  renderList('all');
+}
+
+document.getElementById('mark-all-btn').addEventListener('click', markAll);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('btn-primary','btn-ghost'));
+    btn.classList.replace('btn-ghost','btn-primary');
+    activeFilter = btn.dataset.filter;
+    renderList(activeFilter);
+  });
+});
+
+document.getElementById('rm-close').addEventListener('click', () => {
+  document.getElementById('read-modal').classList.remove('open');
+});
+document.getElementById('read-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('read-modal'))
+    document.getElementById('read-modal').classList.remove('open');
+});
+
+load().catch(() => toast('Failed to load', 'error'));
+</script>
+</body>
+</html>
