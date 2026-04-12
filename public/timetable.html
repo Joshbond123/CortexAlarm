@@ -2,108 +2,133 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1a">
 <title>Cortex Alarm — Timetable</title>
 <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
+<div class="app-shell">
 
-<aside class="sidebar">
-  <div class="sidebar-brand"><span class="icon">⊛</span><span>CORTEX_ALARM</span><span class="dot"></span></div>
-  <nav>
-    <div class="nav-section">Navigation</div>
-    <a class="nav-link" href="./index.html"><span class="icon">⬡</span><span>Dashboard</span></a>
-    <a class="nav-link" href="./notifications.html"><span class="icon">◈</span><span>Inbox</span></a>
-    <a class="nav-link active" href="./timetable.html"><span class="icon">◫</span><span>Timetable</span></a>
-    <div class="nav-section">System</div>
-    <a class="nav-link" href="./settings.html"><span class="icon">⚙</span><span>Settings</span></a>
-    <a class="nav-link" href="./keys.html"><span class="icon">⌗</span><span>API Keys</span></a>
-    <a class="nav-link" href="./device.html"><span class="icon">⌖</span><span>Device</span></a>
-    <a class="nav-link" href="./logs.html"><span class="icon">≡</span><span>Logs</span></a>
-  </nav>
-  <div class="sidebar-footer"><span class="status-dot"></span><span>SYS_ONLINE</span></div>
-</aside>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⊛</div>
+      <div><div class="brand-name">Cortex Alarm</div><div class="brand-sub">ND1 Study System</div></div>
+      <div class="brand-pulse"></div>
+    </div>
+    <nav style="padding:8px;flex:1;overflow-y:auto">
+      <div class="nav-group"><div class="nav-group-label">Main</div>
+        <a class="nav-link" href="./index.html"><span class="nav-icon">⬡</span><span>Dashboard</span></a>
+        <a class="nav-link" href="./notifications.html"><span class="nav-icon">◈</span><span>Inbox</span></a>
+        <a class="nav-link active" href="./timetable.html"><span class="nav-icon">◫</span><span>Timetable</span></a>
+      </div>
+      <div class="nav-group"><div class="nav-group-label">System</div>
+        <a class="nav-link" href="./settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+        <a class="nav-link" href="./keys.html"><span class="nav-icon">⌗</span><span>API Keys</span></a>
+        <a class="nav-link" href="./device.html"><span class="nav-icon">⌖</span><span>Device</span></a>
+        <a class="nav-link" href="./logs.html"><span class="nav-icon">≡</span><span>Logs</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-footer"><div class="sys-dot"></div><span class="sys-label">System Online</span></div>
+  </aside>
 
-<div class="main">
-  <div class="page-header">
-    <div class="page-title-wrap">
-      <div class="page-title">ND1 Timetable</div>
-      <div class="page-subtitle">Full weekly lecture schedule — no excuses for being unprepared</div>
+  <div class="main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-title">Timetable</div>
+        <div class="page-subtitle">ND1 Computer Science — 2nd Semester weekly schedule</div>
+      </div>
+      <div class="page-actions">
+        <span class="badge badge-blue" id="today-badge"></span>
+      </div>
     </div>
-    <div style="padding-bottom:20px">
-      <span class="badge badge-amber" id="today-label">TODAY: —</span>
+    <div class="page-divider"></div>
+
+    <div class="page-content">
+      <!-- Summary row -->
+      <div class="grid grid-3 mb-6" id="summary-row"></div>
+      <!-- Day cards -->
+      <div id="tt-grid"></div>
     </div>
-  </div>
-  <div class="page-content">
-    <div id="tt-grid"></div>
   </div>
 </div>
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a class="bnav-item" href="./index.html"><div class="bnav-icon">⬡</div><div class="bnav-label">Home</div></a>
+    <a class="bnav-item" href="./notifications.html"><div class="bnav-icon">◈</div><div class="bnav-label">Inbox</div></a>
+    <a class="bnav-item active" href="./timetable.html"><div class="bnav-icon">◫</div><div class="bnav-label">Schedule</div></a>
+    <a class="bnav-item" href="./settings.html"><div class="bnav-icon">⚙</div><div class="bnav-label">Settings</div></a>
+    <a class="bnav-item" href="./logs.html"><div class="bnav-icon">≡</div><div class="bnav-label">Logs</div></a>
+  </div>
+</nav>
 
 <div id="toast-container"></div>
 
 <script type="module">
-const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const ND1 = [
-  { day:'Monday', lectures:[
-    {subject:'Engineering Mathematics I',startTime:'08:00',endTime:'10:00',venue:'LT1'},
-    {subject:'Engineering Chemistry',startTime:'10:00',endTime:'12:00',venue:'LT2'},
-    {subject:'Introduction to Computing',startTime:'13:00',endTime:'15:00',venue:'CL1'},
-    {subject:'Technical Drawing',startTime:'15:00',endTime:'17:00',venue:'TD Lab'},
-  ]},
-  { day:'Tuesday', lectures:[
-    {subject:'Engineering Physics',startTime:'08:00',endTime:'10:00',venue:'LT3'},
-    {subject:'Engineering Mathematics I',startTime:'10:00',endTime:'12:00',venue:'LT1'},
-    {subject:'Communication Skills',startTime:'13:00',endTime:'15:00',venue:'LT4'},
-  ]},
-  { day:'Wednesday', lectures:[
-    {subject:'Engineering Chemistry Lab',startTime:'08:00',endTime:'11:00',venue:'Chem Lab'},
-    {subject:'Introduction to Computing Lab',startTime:'11:00',endTime:'13:00',venue:'CL1'},
-    {subject:'Engineering Physics',startTime:'14:00',endTime:'16:00',venue:'LT3'},
-  ]},
-  { day:'Thursday', lectures:[
-    {subject:'Engineering Mathematics I',startTime:'08:00',endTime:'10:00',venue:'LT1'},
-    {subject:'Technical Drawing',startTime:'10:00',endTime:'12:00',venue:'TD Lab'},
-    {subject:'Engineering Physics Lab',startTime:'13:00',endTime:'16:00',venue:'Phys Lab'},
-  ]},
-  { day:'Friday', lectures:[
-    {subject:'Communication Skills',startTime:'08:00',endTime:'10:00',venue:'LT4'},
-    {subject:'Engineering Chemistry',startTime:'10:00',endTime:'12:00',venue:'LT2'},
-    {subject:'Introduction to Engineering',startTime:'13:00',endTime:'15:00',venue:'LT1'},
-  ]},
-  { day:'Saturday', lectures:[] },
-  { day:'Sunday', lectures:[] },
-];
+import { TIMETABLE, DAYS, todayName, lastLectureEnd, isWeekend, esc } from './js/utils.js';
 
-const today = DAYS[new Date().getDay()];
-document.getElementById('today-label').textContent = `TODAY: ${today.toUpperCase()}`;
+const today = todayName();
+document.getElementById('today-badge').textContent = today.toUpperCase();
 
-function lastLecture(lectures) {
-  if (!lectures.length) return null;
-  return [...lectures].sort((a,b) => a.endTime.localeCompare(b.endTime)).at(-1);
-}
+// Summary
+const weekDays = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const totalLectures = weekDays.reduce((s,d) => s + (TIMETABLE[d]?.length||0), 0);
+const allCodes = [...new Set(weekDays.flatMap(d => (TIMETABLE[d]||[]).map(l => l.code)))];
 
-const grid = document.getElementById('tt-grid');
-grid.innerHTML = ND1.map(day => {
-  const isToday = day.day === today;
-  const last = lastLecture(day.lectures);
-  let afterLecture = null;
-  if (last) {
-    const [h,m] = last.endTime.split(':').map(Number);
-    const ah = Math.floor((h*60+m+60)/60), am = (h*60+m+60)%60;
-    afterLecture = `${String(ah).padStart(2,'0')}:${String(am).padStart(2,'0')}`;
+document.getElementById('summary-row').innerHTML = `
+  <div class="card stat-card">
+    <div class="stat-header"><div class="stat-label">Weekly Lectures</div><div class="stat-icon-wrap blue">◫</div></div>
+    <div class="stat-value blue">${totalLectures}</div>
+    <div class="stat-footer">Across 5 weekdays</div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-header"><div class="stat-label">Courses</div><div class="stat-icon-wrap amber">⊛</div></div>
+    <div class="stat-value amber">${allCodes.length}</div>
+    <div class="stat-footer">${allCodes.join(', ')}</div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-header"><div class="stat-label">Weekend</div><div class="stat-icon-wrap green">🔁</div></div>
+    <div class="stat-value green">2</div>
+    <div class="stat-footer">Revision reminders sent</div>
+  </div>`;
+
+// Day cards
+const allDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+document.getElementById('tt-grid').innerHTML = allDays.map(day => {
+  const lectures = TIMETABLE[day] || [];
+  const isToday = day === today;
+  const weekend = day === 'Saturday' || day === 'Sunday';
+  const lastEnd = lastLectureEnd(lectures);
+
+  let alertInfo = '';
+  if (lastEnd && !weekend) {
+    const [lh, lm] = lastEnd.split(':').map(Number);
+    const ah = Math.floor((lh*60+lm+60)/60), am = (lh*60+lm+60)%60;
+    const alertTime = `${String(ah).padStart(2,'0')}:${String(am).padStart(2,'0')}`;
+    alertInfo = `<div style="padding:10px 18px;font-size:.76rem;color:var(--text-muted);background:var(--surface);display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)">
+      <span class="badge badge-blue">Post-lecture alert: ${alertTime}</span>
+      <span>1hr after last lecture</span>
+    </div>`;
   }
-  return `
-  <div class="day-card${isToday ? ' today-card' : ''}" style="${isToday ? 'border-color:rgba(59,130,246,.4)' : ''}">
+
+  return `<div class="day-card${isToday ? '" style="border-color:rgba(59,130,246,.4)' : ''}"">
     <div class="day-header">
-      <div class="day-name ${isToday ? 'today' : ''}">${day.day.toUpperCase()}${isToday ? ' ← TODAY' : ''}</div>
-      ${last ? `<span class="badge badge-muted">Last: ${last.endTime} · Alert: ${afterLecture}</span>` : '<span class="badge badge-muted">No lectures</span>'}
+      <div class="day-name ${isToday ? 'today-day' : ''}">${day}${isToday ? ' — Today' : ''}${weekend ? ' — Weekend' : ''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${lectures.length ? `<span class="badge badge-muted">${lectures.length} lecture${lectures.length>1?'s':''}</span>` : ''}
+        ${weekend ? '<span class="badge badge-green">🔁 Revision reminders</span>' : ''}
+        ${!lectures.length && !weekend ? '<span class="badge badge-muted">No lectures</span>' : ''}
+      </div>
     </div>
-    ${day.lectures.length ? day.lectures.map(l => `
+    ${lectures.length ? lectures.map(l => `
       <div class="lecture-row">
         <div class="lecture-time">${l.startTime} – ${l.endTime}</div>
-        <div class="lecture-subject">${l.subject}</div>
-        <div class="lecture-venue">${l.venue}</div>
-      </div>`).join('') : `<div style="padding:16px 18px;color:var(--muted);font-size:.85rem">Rest day — no lectures scheduled.</div>`}
+        <div class="lecture-subject">${esc(l.subject)}</div>
+        <div class="lecture-code">${esc(l.code)}</div>
+      </div>`).join('') : `<div class="day-empty">${weekend ? 'No lectures. Morning (06:00) and Evening (18:00) revision reminders still run.' : 'No lectures scheduled.'}</div>`}
+    ${alertInfo}
   </div>`;
 }).join('');
 </script>
