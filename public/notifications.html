@@ -2,173 +2,175 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1a">
 <title>Cortex Alarm — Inbox</title>
 <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
+<div class="app-shell">
 
-<aside class="sidebar">
-  <div class="sidebar-brand"><span class="icon">⊛</span><span>CORTEX_ALARM</span><span class="dot"></span></div>
-  <nav>
-    <div class="nav-section">Navigation</div>
-    <a class="nav-link" href="./index.html"><span class="icon">⬡</span><span>Dashboard</span></a>
-    <a class="nav-link active" href="./notifications.html"><span class="icon">◈</span><span>Inbox</span></a>
-    <a class="nav-link" href="./timetable.html"><span class="icon">◫</span><span>Timetable</span></a>
-    <div class="nav-section">System</div>
-    <a class="nav-link" href="./settings.html"><span class="icon">⚙</span><span>Settings</span></a>
-    <a class="nav-link" href="./keys.html"><span class="icon">⌗</span><span>API Keys</span></a>
-    <a class="nav-link" href="./device.html"><span class="icon">⌖</span><span>Device</span></a>
-    <a class="nav-link" href="./logs.html"><span class="icon">≡</span><span>Logs</span></a>
-  </nav>
-  <div class="sidebar-footer"><span class="status-dot"></span><span>SYS_ONLINE</span></div>
-</aside>
-
-<div class="main">
-  <div class="page-header">
-    <div class="page-title-wrap">
-      <div class="page-title">Notification Inbox</div>
-      <div class="page-subtitle">All transmitted study directives and alerts</div>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⊛</div>
+      <div><div class="brand-name">Cortex Alarm</div><div class="brand-sub">ND1 Study System</div></div>
+      <div class="brand-pulse"></div>
     </div>
-    <div style="padding-bottom:20px;display:flex;gap:8px;align-items:center">
-      <span class="badge badge-blue" id="unread-badge">0 Unread</span>
-      <button class="btn btn-ghost btn-sm" id="mark-all-btn">Mark all read</button>
-    </div>
-  </div>
+    <nav style="padding:8px;flex:1;overflow-y:auto">
+      <div class="nav-group"><div class="nav-group-label">Main</div>
+        <a class="nav-link" href="./index.html"><span class="nav-icon">⬡</span><span>Dashboard</span></a>
+        <a class="nav-link active" href="./notifications.html"><span class="nav-icon">◈</span><span>Inbox</span></a>
+        <a class="nav-link" href="./timetable.html"><span class="nav-icon">◫</span><span>Timetable</span></a>
+      </div>
+      <div class="nav-group"><div class="nav-group-label">System</div>
+        <a class="nav-link" href="./settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+        <a class="nav-link" href="./keys.html"><span class="nav-icon">⌗</span><span>API Keys</span></a>
+        <a class="nav-link" href="./device.html"><span class="nav-icon">⌖</span><span>Device</span></a>
+        <a class="nav-link" href="./logs.html"><span class="nav-icon">≡</span><span>Logs</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-footer"><div class="sys-dot"></div><span class="sys-label">System Online</span></div>
+  </aside>
 
-  <div class="page-content">
-    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-      <button class="btn btn-primary btn-sm filter-btn active" data-filter="all">All</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-filter="morning">Morning</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-filter="afternoon">Afternoon</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-filter="evening">Evening</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-filter="manual">Manual</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-filter="unread">Unread only</button>
+  <div class="main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-title">Notification Inbox</div>
+        <div class="page-subtitle">All study alerts and AI-generated directives</div>
+      </div>
+      <div class="page-actions">
+        <span class="badge badge-blue" id="unread-badge">0 Unread</span>
+        <button class="btn btn-ghost btn-sm" id="mark-all-btn">Mark all read</button>
+      </div>
     </div>
+    <div class="page-divider"></div>
 
-    <div id="notif-list">
-      <div class="empty"><div class="empty-icon">◈</div><div class="empty-text">Loading transmissions...</div></div>
+    <div class="page-content">
+      <div class="filter-tabs" id="filter-tabs">
+        <button class="filter-tab active" data-filter="all">All</button>
+        <button class="filter-tab" data-filter="morning">☀️ Morning</button>
+        <button class="filter-tab" data-filter="afternoon">📚 Afternoon</button>
+        <button class="filter-tab" data-filter="evening">🌙 Evening</button>
+        <button class="filter-tab" data-filter="weekend">🔁 Weekend</button>
+        <button class="filter-tab" data-filter="unread">Unread</button>
+      </div>
+
+      <div id="notif-list">
+        <div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">Loading...</div></div>
+      </div>
     </div>
   </div>
 </div>
 
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a class="bnav-item" href="./index.html"><div class="bnav-icon">⬡</div><div class="bnav-label">Home</div></a>
+    <a class="bnav-item active" href="./notifications.html"><div class="bnav-icon">◈</div><div class="bnav-label">Inbox</div></a>
+    <a class="bnav-item" href="./timetable.html"><div class="bnav-icon">◫</div><div class="bnav-label">Schedule</div></a>
+    <a class="bnav-item" href="./settings.html"><div class="bnav-icon">⚙</div><div class="bnav-label">Settings</div></a>
+    <a class="bnav-item" href="./logs.html"><div class="bnav-icon">≡</div><div class="bnav-label">Logs</div></a>
+  </div>
+</nav>
+
 <!-- Read modal -->
 <div id="read-modal" class="modal-overlay">
   <div class="modal">
+    <div class="modal-drag"></div>
     <div class="modal-title" id="rm-title"></div>
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="rm-meta"></div>
+    <div class="modal-meta" id="rm-meta"></div>
     <div class="modal-body" id="rm-body"></div>
-    <button class="btn btn-ghost modal-close" id="rm-close">Close</button>
+    <div class="modal-actions">
+      <button class="btn btn-ghost w-full" id="rm-close">Close</button>
+    </div>
   </div>
 </div>
 
 <div id="toast-container"></div>
 
 <script type="module">
-import { fetchStorage, saveJsonToRepo, fmtDate, timeAgo, NOTIF_ICONS, toast } from './js/utils.js';
+import { fetchStorage, saveJsonToRepo, fmtDate, timeAgo, NOTIF_META, toast, esc } from './js/utils.js';
 
-let allNotifs = [];
-let activeFilter = 'all';
+let allNotifs = [], activeFilter = 'all';
 
-const NOTIF_ICON_HTML = { morning:'☀', afternoon:'📚', evening:'🌙', manual:'⚡' };
+const typeBadge = t => ({ morning:'amber', afternoon:'blue', evening:'purple', weekend:'green', manual:'green' }[t] || 'muted');
 
-function renderList(filter) {
-  let list = allNotifs;
-  if (filter === 'unread') list = list.filter(n => !n.read);
-  else if (filter !== 'all') list = list.filter(n => n.type === filter);
+function renderList() {
+  let list = activeFilter === 'all' ? allNotifs
+    : activeFilter === 'unread' ? allNotifs.filter(n => !n.read)
+    : allNotifs.filter(n => n.type === activeFilter);
 
   const el = document.getElementById('notif-list');
   if (!list.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">◈</div><div class="empty-text">No transmissions found</div></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No notifications here</div><div class="empty-desc">Nothing matches this filter</div></div>`;
     return;
   }
   el.innerHTML = list.map(n => {
-    const ic = NOTIF_ICONS[n.type] || NOTIF_ICONS.manual;
-    return `<div class="notif-item ${n.read ? '' : 'unread'} fade-in" data-id="${n.id}" data-type="${n.type}">
-      <div class="notif-icon ${ic.cls}">${NOTIF_ICON_HTML[n.type] || '⚡'}</div>
-      <div style="flex:1;min-width:0">
-        <div class="notif-title">${escHtml(n.title)}</div>
-        <div class="notif-preview">${escHtml(n.body)}</div>
-        <div class="notif-meta">${fmtDate(n.sentAt)} · <span class="badge badge-${typeBadge(n.type)}">${n.type}</span>${n.aiGenerated ? ' · <span class="badge badge-blue">AI</span>' : ''}</div>
+    const m = NOTIF_META[n.type] || NOTIF_META.manual;
+    return `<div class="notif-item${n.read ? '' : ' unread'} fade-up" data-id="${n.id}" style="cursor:pointer">
+      ${!n.read ? '<div class="notif-unread-dot"></div>' : ''}
+      <div class="notif-type-icon ${m.cls}">${m.icon}</div>
+      <div class="notif-body">
+        <div class="notif-title">${esc(n.title)}</div>
+        <div class="notif-preview">${esc(n.body)}</div>
+        <div class="notif-meta">
+          <span>${fmtDate(n.sentAt)}</span>
+          <span class="badge badge-${typeBadge(n.type)}">${m.label}</span>
+          ${n.aiGenerated ? '<span class="badge badge-blue">AI</span>' : ''}
+          ${!n.read ? '<span class="badge badge-blue">NEW</span>' : ''}
+        </div>
       </div>
-      ${!n.read ? '<div style="flex-shrink:0"><span class="badge badge-blue">NEW</span></div>' : ''}
     </div>`;
   }).join('');
-
-  el.querySelectorAll('.notif-item').forEach(el => {
-    el.addEventListener('click', () => openNotif(el.dataset.id));
-  });
+  el.querySelectorAll('.notif-item').forEach(el2 => el2.addEventListener('click', () => openNotif(el2.dataset.id)));
 }
 
-function typeBadge(t) {
-  return { morning:'amber', afternoon:'blue', evening:'muted', manual:'green' }[t] || 'muted';
-}
-
-function escHtml(s) {
-  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
-}
-
-function openNotif(id) {
-  const n = allNotifs.find(x => x.id === id);
-  if (!n) return;
-  document.getElementById('rm-title').textContent = n.title;
-  document.getElementById('rm-meta').innerHTML = `
-    <span class="badge badge-${typeBadge(n.type)}">${n.type}</span>
-    <span class="badge badge-muted">${fmtDate(n.sentAt)}</span>
-    ${n.aiGenerated ? '<span class="badge badge-blue">AI-generated</span>' : ''}
-    ${n.read ? '' : '<span class="badge badge-blue">UNREAD</span>'}`;
-  document.getElementById('rm-body').textContent = n.body;
-  document.getElementById('read-modal').classList.add('open');
-  if (!n.read) markRead(id);
-}
-
-async function markRead(id) {
-  const n = allNotifs.find(x => x.id === id);
-  if (!n || n.read) return;
-  n.read = true;
-  updateUnread();
-  renderList(activeFilter);
-  await saveJsonToRepo('storage/notifications.json', allNotifs, 'chore: mark notification read');
-}
-
-async function markAll() {
-  allNotifs.forEach(n => n.read = true);
-  updateUnread();
-  renderList(activeFilter);
-  const ok = await saveJsonToRepo('storage/notifications.json', allNotifs, 'chore: mark all notifications read');
-  toast(ok.ok ? 'All marked as read' : 'Saved locally — push to repo to persist', ok.ok ? 'success' : 'info');
-}
-
-function updateUnread() {
+function updateBadge() {
   const u = allNotifs.filter(n => !n.read).length;
   document.getElementById('unread-badge').textContent = `${u} Unread`;
 }
 
-async function load() {
-  allNotifs = (await fetchStorage('notifications')) || [];
-  updateUnread();
-  renderList('all');
+async function openNotif(id) {
+  const n = allNotifs.find(x => x.id === id);
+  if (!n) return;
+  const m = NOTIF_META[n.type] || NOTIF_META.manual;
+  document.getElementById('rm-title').textContent = n.title;
+  document.getElementById('rm-meta').innerHTML = `
+    <span class="badge badge-${typeBadge(n.type)}">${m.icon} ${m.label}</span>
+    <span class="badge badge-muted">${fmtDate(n.sentAt)}</span>
+    ${n.aiGenerated ? '<span class="badge badge-blue">AI-generated</span>' : ''}`;
+  document.getElementById('rm-body').textContent = n.body;
+  document.getElementById('read-modal').classList.add('open');
+  if (!n.read) {
+    n.read = true;
+    updateBadge(); renderList();
+    saveJsonToRepo('storage/notifications.json', allNotifs, 'chore: mark notification read').catch(() => {});
+  }
 }
 
-document.getElementById('mark-all-btn').addEventListener('click', markAll);
+document.getElementById('rm-close').addEventListener('click', () => document.getElementById('read-modal').classList.remove('open'));
+document.getElementById('read-modal').addEventListener('click', e => { if (e.target === document.getElementById('read-modal')) document.getElementById('read-modal').classList.remove('open'); });
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('btn-primary','btn-ghost'));
-    btn.classList.replace('btn-ghost','btn-primary');
-    activeFilter = btn.dataset.filter;
-    renderList(activeFilter);
-  });
+document.getElementById('mark-all-btn').addEventListener('click', async () => {
+  allNotifs.forEach(n => n.read = true);
+  updateBadge(); renderList();
+  const r = await saveJsonToRepo('storage/notifications.json', allNotifs, 'chore: mark all read');
+  toast(r.ok ? 'All marked as read' : 'Marked locally — add GitHub token to sync', r.ok ? 'success' : 'info');
 });
 
-document.getElementById('rm-close').addEventListener('click', () => {
-  document.getElementById('read-modal').classList.remove('open');
-});
-document.getElementById('read-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('read-modal'))
-    document.getElementById('read-modal').classList.remove('open');
+document.getElementById('filter-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-tab');
+  if (!btn) return;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.filter;
+  renderList();
 });
 
+async function load() {
+  allNotifs = (await fetchStorage('notifications')) || [];
+  updateBadge(); renderList();
+}
 load().catch(() => toast('Failed to load', 'error'));
 </script>
 </body>
