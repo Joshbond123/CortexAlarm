@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cortex Alarm — Timetable</title>
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand"><span class="icon">⊛</span><span>CORTEX_ALARM</span><span class="dot"></span></div>
+  <nav>
+    <div class="nav-section">Navigation</div>
+    <a class="nav-link" href="./index.html"><span class="icon">⬡</span><span>Dashboard</span></a>
+    <a class="nav-link" href="./notifications.html"><span class="icon">◈</span><span>Inbox</span></a>
+    <a class="nav-link active" href="./timetable.html"><span class="icon">◫</span><span>Timetable</span></a>
+    <div class="nav-section">System</div>
+    <a class="nav-link" href="./settings.html"><span class="icon">⚙</span><span>Settings</span></a>
+    <a class="nav-link" href="./keys.html"><span class="icon">⌗</span><span>API Keys</span></a>
+    <a class="nav-link" href="./device.html"><span class="icon">⌖</span><span>Device</span></a>
+    <a class="nav-link" href="./logs.html"><span class="icon">≡</span><span>Logs</span></a>
+  </nav>
+  <div class="sidebar-footer"><span class="status-dot"></span><span>SYS_ONLINE</span></div>
+</aside>
+
+<div class="main">
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="page-title">ND1 Timetable</div>
+      <div class="page-subtitle">Full weekly lecture schedule — no excuses for being unprepared</div>
+    </div>
+    <div style="padding-bottom:20px">
+      <span class="badge badge-amber" id="today-label">TODAY: —</span>
+    </div>
+  </div>
+  <div class="page-content">
+    <div id="tt-grid"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const ND1 = [
+  { day:'Monday', lectures:[
+    {subject:'Engineering Mathematics I',startTime:'08:00',endTime:'10:00',venue:'LT1'},
+    {subject:'Engineering Chemistry',startTime:'10:00',endTime:'12:00',venue:'LT2'},
+    {subject:'Introduction to Computing',startTime:'13:00',endTime:'15:00',venue:'CL1'},
+    {subject:'Technical Drawing',startTime:'15:00',endTime:'17:00',venue:'TD Lab'},
+  ]},
+  { day:'Tuesday', lectures:[
+    {subject:'Engineering Physics',startTime:'08:00',endTime:'10:00',venue:'LT3'},
+    {subject:'Engineering Mathematics I',startTime:'10:00',endTime:'12:00',venue:'LT1'},
+    {subject:'Communication Skills',startTime:'13:00',endTime:'15:00',venue:'LT4'},
+  ]},
+  { day:'Wednesday', lectures:[
+    {subject:'Engineering Chemistry Lab',startTime:'08:00',endTime:'11:00',venue:'Chem Lab'},
+    {subject:'Introduction to Computing Lab',startTime:'11:00',endTime:'13:00',venue:'CL1'},
+    {subject:'Engineering Physics',startTime:'14:00',endTime:'16:00',venue:'LT3'},
+  ]},
+  { day:'Thursday', lectures:[
+    {subject:'Engineering Mathematics I',startTime:'08:00',endTime:'10:00',venue:'LT1'},
+    {subject:'Technical Drawing',startTime:'10:00',endTime:'12:00',venue:'TD Lab'},
+    {subject:'Engineering Physics Lab',startTime:'13:00',endTime:'16:00',venue:'Phys Lab'},
+  ]},
+  { day:'Friday', lectures:[
+    {subject:'Communication Skills',startTime:'08:00',endTime:'10:00',venue:'LT4'},
+    {subject:'Engineering Chemistry',startTime:'10:00',endTime:'12:00',venue:'LT2'},
+    {subject:'Introduction to Engineering',startTime:'13:00',endTime:'15:00',venue:'LT1'},
+  ]},
+  { day:'Saturday', lectures:[] },
+  { day:'Sunday', lectures:[] },
+];
+
+const today = DAYS[new Date().getDay()];
+document.getElementById('today-label').textContent = `TODAY: ${today.toUpperCase()}`;
+
+function lastLecture(lectures) {
+  if (!lectures.length) return null;
+  return [...lectures].sort((a,b) => a.endTime.localeCompare(b.endTime)).at(-1);
+}
+
+const grid = document.getElementById('tt-grid');
+grid.innerHTML = ND1.map(day => {
+  const isToday = day.day === today;
+  const last = lastLecture(day.lectures);
+  let afterLecture = null;
+  if (last) {
+    const [h,m] = last.endTime.split(':').map(Number);
+    const ah = Math.floor((h*60+m+60)/60), am = (h*60+m+60)%60;
+    afterLecture = `${String(ah).padStart(2,'0')}:${String(am).padStart(2,'0')}`;
+  }
+  return `
+  <div class="day-card${isToday ? ' today-card' : ''}" style="${isToday ? 'border-color:rgba(59,130,246,.4)' : ''}">
+    <div class="day-header">
+      <div class="day-name ${isToday ? 'today' : ''}">${day.day.toUpperCase()}${isToday ? ' ← TODAY' : ''}</div>
+      ${last ? `<span class="badge badge-muted">Last: ${last.endTime} · Alert: ${afterLecture}</span>` : '<span class="badge badge-muted">No lectures</span>'}
+    </div>
+    ${day.lectures.length ? day.lectures.map(l => `
+      <div class="lecture-row">
+        <div class="lecture-time">${l.startTime} – ${l.endTime}</div>
+        <div class="lecture-subject">${l.subject}</div>
+        <div class="lecture-venue">${l.venue}</div>
+      </div>`).join('') : `<div style="padding:16px 18px;color:var(--muted);font-size:.85rem">Rest day — no lectures scheduled.</div>`}
+  </div>`;
+}).join('');
+</script>
+</body>
+</html>
