@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cortex Alarm — System Logs</title>
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand"><span class="icon">⊛</span><span>CORTEX_ALARM</span><span class="dot"></span></div>
+  <nav>
+    <div class="nav-section">Navigation</div>
+    <a class="nav-link" href="./index.html"><span class="icon">⬡</span><span>Dashboard</span></a>
+    <a class="nav-link" href="./notifications.html"><span class="icon">◈</span><span>Inbox</span></a>
+    <a class="nav-link" href="./timetable.html"><span class="icon">◫</span><span>Timetable</span></a>
+    <div class="nav-section">System</div>
+    <a class="nav-link" href="./settings.html"><span class="icon">⚙</span><span>Settings</span></a>
+    <a class="nav-link" href="./keys.html"><span class="icon">⌗</span><span>API Keys</span></a>
+    <a class="nav-link" href="./device.html"><span class="icon">⌖</span><span>Device</span></a>
+    <a class="nav-link active" href="./logs.html"><span class="icon">≡</span><span>Logs</span></a>
+  </nav>
+  <div class="sidebar-footer"><span class="status-dot"></span><span>SYS_ONLINE</span></div>
+</aside>
+
+<div class="main">
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <div class="page-title">System Logs</div>
+      <div class="page-subtitle">Scheduler activity, notification dispatches, and error trace</div>
+    </div>
+    <div style="padding-bottom:20px;display:flex;gap:8px">
+      <span class="badge badge-muted" id="log-count">0 entries</span>
+      <button class="btn btn-ghost btn-sm" id="refresh-btn">⟳ Refresh</button>
+    </div>
+  </div>
+
+  <div class="page-content">
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm filter-btn active" data-filter="all">All</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="info">Info</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="success">Success</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="warn">Warnings</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-filter="error">Errors</button>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;min-width:155px">Timestamp</div>
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;min-width:70px">Level</div>
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex:1">Message</div>
+      </div>
+      <div id="log-list" style="max-height:65vh;overflow-y:auto">
+        <div class="empty" style="padding:36px"><div class="empty-icon">≡</div><div class="empty-text">Loading logs...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { fetchStorage, fmtDate, toast } from './js/utils.js';
+
+let allLogs = [];
+let activeFilter = 'all';
+
+async function load() {
+  allLogs = (await fetchStorage('logs')) || [];
+  allLogs = [...allLogs].reverse();
+  render();
+}
+
+function render() {
+  let list = allLogs;
+  if (activeFilter !== 'all') list = list.filter(l => l.level === activeFilter);
+  document.getElementById('log-count').textContent = `${list.length} entries`;
+
+  const el = document.getElementById('log-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty" style="padding:36px"><div class="empty-icon">≡</div><div class="empty-text">No log entries</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(l => {
+    const lvl = l.level || 'info';
+    const colors = { info:'var(--muted)', success:'var(--green)', warn:'var(--amber)', error:'var(--red)' };
+    const labels = { info:'INFO', success:'OK', warn:'WARN', error:'ERR' };
+    return `<div class="log-entry">
+      <span class="log-time">${fmtDate(l.timestamp)}</span>
+      <span style="font-family:var(--mono);font-size:.72rem;min-width:60px;color:${colors[lvl]||colors.info};font-weight:700">${labels[lvl]||'INFO'}</span>
+      <span class="log-msg ${lvl}">${escHtml(l.message)}</span>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('btn-primary','btn-ghost'));
+    btn.classList.replace('btn-ghost','btn-primary');
+    activeFilter = btn.dataset.filter;
+    render();
+  });
+});
+
+document.getElementById('refresh-btn').addEventListener('click', () => { toast('Refreshing logs...','info'); load(); });
+load().catch(() => toast('Failed to load logs','error'));
+</script>
+</body>
+</html>
