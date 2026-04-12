@@ -1,267 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0f1a">
-<meta name="description" content="Cortex Alarm — AI-powered study discipline system for ND1 students">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Cortex Alarm — Dashboard</title>
-<link rel="stylesheet" href="./css/style.css">
-<link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="/CortexAlarm/public/css/style.css"/>
+<link rel="manifest" href="/CortexAlarm/public/manifest.json"/>
 </head>
 <body>
-<div class="app-shell">
-
-  <!-- Sidebar -->
-  <aside class="sidebar">
+<div class="app-layout">
+  <nav class="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-icon">⊛</div>
-      <div><div class="brand-name">Cortex Alarm</div><div class="brand-sub">ND1 Study System</div></div>
-      <div class="brand-pulse"></div>
+      <h1>◈ Cortex Alarm</h1>
+      <p>ND1 CS — Study System</p>
     </div>
-    <nav style="padding:8px;flex:1;overflow-y:auto">
-      <div class="nav-group"><div class="nav-group-label">Main</div>
-        <a class="nav-link active" href="./index.html"><span class="nav-icon">⬡</span><span>Dashboard</span></a>
-        <a class="nav-link" href="./notifications.html"><span class="nav-icon">◈</span><span>Inbox</span></a>
-        <a class="nav-link" href="./timetable.html"><span class="nav-icon">◫</span><span>Timetable</span></a>
-      </div>
-      <div class="nav-group"><div class="nav-group-label">System</div>
-        <a class="nav-link" href="./settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
-        <a class="nav-link" href="./keys.html"><span class="nav-icon">⌗</span><span>API Keys</span></a>
-        <a class="nav-link" href="./device.html"><span class="nav-icon">⌖</span><span>Device</span></a>
-        <a class="nav-link" href="./logs.html"><span class="nav-icon">≡</span><span>Logs</span></a>
-      </div>
-    </nav>
-    <div class="sidebar-footer"><div class="sys-dot"></div><span class="sys-label">System Online</span></div>
-  </aside>
+    <div id="sidebar-nav"></div>
+  </nav>
 
-  <!-- Main content -->
-  <div class="main">
+  <main class="main-content">
     <div class="page-header">
-      <div class="page-header-left">
-        <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Study discipline command center</div>
-      </div>
-      <div class="page-actions">
-        <span class="badge badge-green" id="sys-status">● Live</span>
+      <h2>Dashboard</h2>
+      <p id="today-label">Loading…</p>
+    </div>
+
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-value" id="stat-notifs">—</div><div class="stat-label">Total Notifications</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-unread">—</div><div class="stat-label">Unread</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-keys">—</div><div class="stat-label">API Keys</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-devices">—</div><div class="stat-label">Subscribed Devices</div></div>
+    </div>
+
+    <!-- Today's Schedule -->
+    <div class="section">
+      <div class="section-title">Today's Schedule</div>
+      <div id="today-schedule" class="card"><div class="loading"><span class="spinner"></span>Loading…</div></div>
+    </div>
+
+    <!-- Recent Notifications -->
+    <div class="section">
+      <div class="section-title">Recent Notifications</div>
+      <div id="recent-notifs"><div class="loading"><span class="spinner"></span>Loading…</div></div>
+    </div>
+
+    <!-- System Status -->
+    <div class="section">
+      <div class="section-title">System Status</div>
+      <div class="card">
+        <div id="sys-status"><div class="loading"><span class="spinner"></span>Loading…</div></div>
       </div>
     </div>
-    <div class="page-divider"></div>
-
-    <div class="page-content">
-
-      <!-- Stats grid -->
-      <div class="grid grid-4 mb-6" id="stats-row">
-        <div class="card stat-card fade-up">
-          <div class="stat-header">
-            <div class="stat-label">Total Alerts</div>
-            <div class="stat-icon-wrap blue">◈</div>
-          </div>
-          <div class="stat-value blue" id="stat-total">—</div>
-          <div class="stat-footer">All time notifications</div>
-        </div>
-        <div class="card stat-card fade-up" style="animation-delay:.05s">
-          <div class="stat-header">
-            <div class="stat-label">Active Devices</div>
-            <div class="stat-icon-wrap green">⌖</div>
-          </div>
-          <div class="stat-value green" id="stat-subs">—</div>
-          <div class="stat-footer">Subscribed nodes</div>
-        </div>
-        <div class="card stat-card fade-up" style="animation-delay:.1s">
-          <div class="stat-header">
-            <div class="stat-label">Unread</div>
-            <div class="stat-icon-wrap amber">⊛</div>
-          </div>
-          <div class="stat-value amber" id="stat-unread">—</div>
-          <div class="stat-footer">Pending review</div>
-        </div>
-        <div class="card stat-card fade-up" style="animation-delay:.15s">
-          <div class="stat-header">
-            <div class="stat-label">Sent Today</div>
-            <div class="stat-icon-wrap purple">☀</div>
-          </div>
-          <div class="stat-value purple" id="stat-today">—</div>
-          <div class="stat-footer" id="stat-today-label">Dispatches</div>
-        </div>
-      </div>
-
-      <!-- Status cards -->
-      <div class="grid grid-3 mb-6">
-        <div class="card fade-up" style="animation-delay:.2s">
-          <div class="section-header"><div class="section-title">AI Status</div></div>
-          <div id="ai-status" class="status-row" style="margin-top:8px">
-            <div class="status-dot amber"></div><span style="font-size:.85rem;font-weight:600">Loading...</span>
-          </div>
-          <div style="font-size:.75rem;color:var(--text-muted);margin-top:6px" id="ai-keys-count"></div>
-        </div>
-        <div class="card fade-up" style="animation-delay:.25s">
-          <div class="section-header"><div class="section-title">Notifications</div></div>
-          <div id="notif-status" class="status-row" style="margin-top:8px">
-            <div class="status-dot amber"></div><span style="font-size:.85rem;font-weight:600">Loading...</span>
-          </div>
-          <div style="font-size:.75rem;color:var(--text-muted);margin-top:6px" id="notif-times"></div>
-        </div>
-        <div class="card fade-up" style="animation-delay:.3s">
-          <div class="section-header"><div class="section-title">Next Reminder</div></div>
-          <div id="next-reminder" style="margin-top:8px;font-size:.95rem;font-weight:700;color:var(--blue-bright)">—</div>
-          <div id="next-reminder-type" style="font-size:.75rem;color:var(--text-muted);margin-top:4px"></div>
-        </div>
-      </div>
-
-      <!-- Recent notifications + Today's lectures -->
-      <div class="grid grid-2">
-        <div class="fade-up" style="animation-delay:.35s">
-          <div class="section-header">
-            <div class="section-title">Recent Alerts</div>
-            <a href="./notifications.html" class="btn btn-ghost btn-xs">View all →</a>
-          </div>
-          <div id="recent-list">
-            <div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No alerts yet</div><div class="empty-desc">Notifications will appear here</div></div>
-          </div>
-        </div>
-        <div class="fade-up" style="animation-delay:.4s">
-          <div class="section-header">
-            <div class="section-title" id="today-label">Today's Lectures</div>
-            <a href="./timetable.html" class="btn btn-ghost btn-xs">Full schedule →</a>
-          </div>
-          <div id="today-lectures">
-            <div class="empty-state"><div class="empty-icon">◫</div><div class="empty-title">Loading...</div></div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
+  </main>
 </div>
 
-<!-- Bottom nav (mobile) -->
-<nav class="bottom-nav">
-  <div class="bottom-nav-inner">
-    <a class="bnav-item active" href="./index.html"><div class="bnav-icon">⬡</div><div class="bnav-label">Home</div></a>
-    <a class="bnav-item" href="./notifications.html"><div class="bnav-icon">◈</div><div class="bnav-label">Inbox</div></a>
-    <a class="bnav-item" href="./timetable.html"><div class="bnav-icon">◫</div><div class="bnav-label">Schedule</div></a>
-    <a class="bnav-item" href="./settings.html"><div class="bnav-icon">⚙</div><div class="bnav-label">Settings</div></a>
-    <a class="bnav-item" href="./logs.html"><div class="bnav-icon">≡</div><div class="bnav-label">Logs</div></a>
-  </div>
-</nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner" id="bottom-nav"></div></nav>
 
-<div id="toast-container"></div>
+<script src="/CortexAlarm/public/js/supabase-client.js"></script>
+<script src="/CortexAlarm/public/js/utils.js"></script>
+<script>
+utils.buildNav('index');
 
-<script type="module">
-import { fetchStorage, timeAgo, NOTIF_META, TIMETABLE, DAYS, todayName, todayLectures, lastLectureEnd, isWeekend, toast, esc } from './js/utils.js';
+// Today label
+const today = new Intl.DateTimeFormat('en-GB',{ timeZone:'Africa/Lagos', weekday:'long', day:'numeric', month:'long' }).format(new Date());
+document.getElementById('today-label').textContent = today;
 
-async function load() {
-  const [notifs, subs, settings, keys] = await Promise.all([
-    fetchStorage('notifications'), fetchStorage('subscribers'),
-    fetchStorage('settings'), fetchStorage('api_keys'),
-  ]);
+// Today's schedule
+const sched = utils.getTodaySchedule();
+const schedEl = document.getElementById('today-schedule');
+if (!sched.lectures.length) {
+  schedEl.innerHTML = `<div class="empty"><div class="empty-icon">◷</div><p>${sched.day} — No lectures scheduled. Focus on revision.</p></div>`;
+} else {
+  schedEl.innerHTML = sched.lectures.map(l => `
+    <div class="lecture-row">
+      <div class="lecture-time">${l.startTime}–${l.endTime}</div>
+      <div><div class="lecture-code">${l.code}</div><div class="lecture-sub">${l.subject}</div></div>
+    </div>`).join('');
+}
 
-  const all = notifs || [];
-  const activeSubs = (subs || []).filter(s => s.active);
-  const todayStr = new Date().toDateString();
-  const todayCount = all.filter(n => new Date(n.sentAt).toDateString() === todayStr).length;
-  const unread = all.filter(n => !n.read).length;
+// Load stats
+async function loadDash() {
+  try {
+    const [notifs, keys, devs, settings] = await Promise.all([
+      sb.select('notifications', 'select=id,read'),
+      sb.select('api_keys', 'select=id,active'),
+      sb.select('subscribers', 'active=eq.true&select=id'),
+      sb.select('settings', 'id=eq.1'),
+    ]);
+    const n = notifs || [];
+    document.getElementById('stat-notifs').textContent  = n.length;
+    document.getElementById('stat-unread').textContent  = n.filter(x=>!x.read).length;
+    document.getElementById('stat-keys').textContent    = (keys||[]).filter(k=>k.active).length;
+    document.getElementById('stat-devices').textContent = (devs||[]).length;
 
-  document.getElementById('stat-total').textContent = all.length;
-  document.getElementById('stat-subs').textContent = activeSubs.length;
-  document.getElementById('stat-unread').textContent = unread;
-  document.getElementById('stat-today').textContent = todayCount;
-
-  const s = settings || { aiEnabled: true, notificationsEnabled: true, morningTime: '06:00', eveningTime: '18:00' };
-  const activeKeys = (keys || []).filter(k => k.active).length;
-
-  const aiEl = document.getElementById('ai-status');
-  aiEl.innerHTML = s.aiEnabled
-    ? `<div class="status-dot green"></div><span style="font-size:.85rem;font-weight:600">AI Enabled</span>`
-    : `<div class="status-dot red"></div><span style="font-size:.85rem;font-weight:600">AI Disabled</span>`;
-  document.getElementById('ai-keys-count').textContent = `${activeKeys} active key${activeKeys !== 1 ? 's' : ''}`;
-
-  const notifEl = document.getElementById('notif-status');
-  notifEl.innerHTML = s.notificationsEnabled
-    ? `<div class="status-dot green"></div><span style="font-size:.85rem;font-weight:600">Enabled</span>`
-    : `<div class="status-dot red"></div><span style="font-size:.85rem;font-weight:600">Disabled</span>`;
-  document.getElementById('notif-times').textContent = `Morning ${s.morningTime || '06:00'} · Evening ${s.eveningTime || '18:00'}`;
-
-  // Next reminder
-  const now = new Date();
-  const [mh, mm] = (s.morningTime || '06:00').split(':').map(Number);
-  const [eh, em] = (s.eveningTime || '18:00').split(':').map(Number);
-  const morning = new Date(); morning.setHours(mh, mm, 0, 0);
-  const evening = new Date(); evening.setHours(eh, em, 0, 0);
-  const dayName = todayName();
-  const lectures = todayLectures();
-  const lastEnd = lastLectureEnd(lectures);
-
-  let nextTime = null, nextType = '';
-  if (now < morning) { nextTime = morning; nextType = 'Morning review reminder'; }
-  else if (lastEnd && !isWeekend(dayName)) {
-    const [lh, lm] = lastEnd.split(':').map(Number);
-    const afterLecture = new Date(); afterLecture.setHours(Math.floor((lh * 60 + lm + 60) / 60), (lh * 60 + lm + 60) % 60, 0, 0);
-    if (now < afterLecture) { nextTime = afterLecture; nextType = 'Post-lecture consolidation'; }
-    else if (now < evening) { nextTime = evening; nextType = 'Evening study reminder'; }
-  } else if (now < evening) { nextTime = evening; nextType = 'Evening study reminder'; }
-
-  if (nextTime) {
-    document.getElementById('next-reminder').textContent = nextTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('next-reminder-type').textContent = nextType;
-  } else {
-    document.getElementById('next-reminder').textContent = `${(s.morningTime || '06:00')} tomorrow`;
-    document.getElementById('next-reminder-type').textContent = 'Morning review reminder';
-  }
-
-  // Recent notifications
-  const recent = all.slice(0, 6);
-  const rl = document.getElementById('recent-list');
-  if (recent.length) {
-    rl.innerHTML = recent.map(n => {
-      const meta = NOTIF_META[n.type] || NOTIF_META.manual;
-      return `<div class="notif-item${n.read ? '' : ' unread'}" onclick="location.href='./notifications.html'">
-        ${!n.read ? '<div class="notif-unread-dot"></div>' : ''}
-        <div class="notif-type-icon ${meta.cls}">${meta.icon}</div>
-        <div class="notif-body">
-          <div class="notif-title truncate">${esc(n.title)}</div>
-          <div class="notif-preview">${esc(n.body)}</div>
-          <div class="notif-meta">
-            <span>${timeAgo(n.sentAt)}</span>
-            <span class="badge badge-muted">${meta.label}</span>
-            ${n.aiGenerated ? '<span class="badge badge-blue">AI</span>' : ''}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  // Today's lectures
-  const dayLabel = document.getElementById('today-label');
-  dayLabel.querySelector('span:last-child') && (dayLabel.textContent = '');
-  const ttEl = document.getElementById('today-lectures');
-  const weekend = isWeekend(dayName);
-  if (weekend) {
-    ttEl.innerHTML = `<div class="card" style="border-color:rgba(34,197,94,.2)">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <span class="badge badge-green">Weekend</span>
-        <span style="font-weight:600">${dayName}</span>
+    // System status
+    const s = settings?.[0];
+    document.getElementById('sys-status').innerHTML = `
+      <div class="toggle-row">
+        <div class="toggle-info"><h4>AI Generation</h4><p>Cerebras gpt-oss-120b</p></div>
+        <span class="badge ${s?.ai_enabled ? 'badge-green' : 'badge-red'}">${s?.ai_enabled ? 'Enabled' : 'Disabled'}</span>
       </div>
-      <div style="font-size:.85rem;color:var(--text-muted);line-height:1.6">No lectures today. Morning (${s.morningTime||'06:00'}) and Evening (${s.eveningTime||'18:00'}) reminders still active.<br>Use this time to catch up on weak topics.</div>
-    </div>`;
-  } else if (lectures.length) {
-    const lastEnd2 = lastLectureEnd(lectures);
-    const lastEndParts = lastEnd2 ? lastEnd2.split(':').map(Number) : null;
-    const alertTime = lastEndParts ? `${String(Math.floor((lastEndParts[0]*60+lastEndParts[1]+60)/60)).padStart(2,'0')}:${String((lastEndParts[0]*60+lastEndParts[1]+60)%60).padStart(2,'0')}` : null;
-    ttEl.innerHTML = lectures.map(l => `
-      <div class="lecture-row">
-        <div class="lecture-time">${l.startTime}–${l.endTime}</div>
-        <div class="lecture-subject">${esc(l.subject)}</div>
-        <div class="lecture-code">${esc(l.code)}</div>
-      </div>`).join('') + (alertTime ? `<div style="padding:9px 18px;font-size:.76rem;color:var(--text-muted);background:var(--surface);display:flex;align-items:center;gap:6px"><span class="badge badge-blue">Alert at ${alertTime}</span> Post-lecture consolidation</div>` : '');
-    ttEl.className = 'day-card';
-  } else {
-    ttEl.innerHTML = `<div class="empty-state"><div class="empty-icon">◫</div><div class="empty-title">No lectures ${dayName}</div><div class="empty-desc">Morning and evening reminders still active</div></div>`;
+      <div class="toggle-row">
+        <div class="toggle-info"><h4>Notifications</h4><p>Push alerts</p></div>
+        <span class="badge ${s?.notifications_enabled ? 'badge-green' : 'badge-red'}">${s?.notifications_enabled ? 'Enabled' : 'Disabled'}</span>
+      </div>
+      <div class="toggle-row" style="border:none">
+        <div class="toggle-info"><h4>Schedule</h4><p>Every 5 minutes via GitHub Actions</p></div>
+        <span class="badge badge-blue">Running</span>
+      </div>`;
+  } catch(err) {
+    console.error(err);
   }
 }
 
-load().catch(e => { console.error(e); });
+// Recent notifications
+async function loadRecent() {
+  try {
+    const notifs = await sb.select('notifications', 'order=sent_at.desc&limit=5');
+    const el = document.getElementById('recent-notifs');
+    if (!notifs?.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">◉</div><p>No notifications yet.</p></div>';
+      return;
+    }
+    el.innerHTML = notifs.map(n => `
+      <div class="notif-item ${n.read ? '' : 'unread'}">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-body">${n.body}</div>
+        <div class="notif-meta">
+          <span class="badge badge-${n.type === 'morning' ? 'blue' : n.type === 'evening' ? 'purple' : n.type === 'weekend' ? 'yellow' : 'green'}">${n.type}</span>
+          ${n.ai_generated ? '<span class="badge badge-purple">AI</span>' : ''}
+          <span>${utils.timeAgo(n.sent_at)}</span>
+        </div>
+      </div>`).join('');
+  } catch(err) { console.error(err); }
+}
+
+loadDash();
+loadRecent();
 </script>
 </body>
 </html>
