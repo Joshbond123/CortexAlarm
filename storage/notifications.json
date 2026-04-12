@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "a2e2e2f4-5236-4ff8-9c41-9808d467ec58",
+    "title": "Sunday Evening Prep",
+    "body": "Evening check-in. Before you sleep tonight, review everything you studied today. Read ahead for next week's lectures. Consistent daily preparation is the only thing that separates those who pass from those who don't.",
+    "type": "weekend",
+    "sentAt": "2026-04-12T17:03:19.761Z",
+    "read": false,
+    "aiGenerated": true
+  }
+]
