@@ -3,7 +3,5 @@
   "notificationsEnabled": true,
   "morningTime": "06:00",
   "eveningTime": "18:00",
-  "afternoonTrigger": true,
-  "timezone": "Africa/Lagos",
-  "updatedAt": null
+  "updatedAt": "2026-04-12T06:53:44.747Z"
 }
