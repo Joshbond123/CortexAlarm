@@ -6,9 +6,8 @@
   "scope": "/CortexAlarm/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0a0f1a",
-  "theme_color": "#0f1729",
-  "categories": ["education", "productivity"],
+  "background_color": "#080d1a",
+  "theme_color": "#0e1628",
   "icons": [
     { "src": "/CortexAlarm/public/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
