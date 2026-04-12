@@ -23,7 +23,7 @@
   <main class="main-content">
     <div class="page-header">
       <h2>Settings</h2>
-      <p>Manage your notifications, AI model, API keys, and device subscription.</p>
+      <p>Manage notifications, AI model, API keys, and device subscription.</p>
     </div>
 
     <!-- ── Notification Settings ─────────────────────────────── -->
@@ -74,11 +74,11 @@
         <div style="margin-top:16px;">
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Morning Reminder Time</label>
+              <label class="form-label">Morning Time</label>
               <input type="time" id="morning-time" class="form-input" value="06:00"/>
             </div>
             <div class="form-group">
-              <label class="form-label">Evening Reminder Time</label>
+              <label class="form-label">Evening Time</label>
               <input type="time" id="evening-time" class="form-input" value="18:00"/>
             </div>
           </div>
@@ -93,7 +93,7 @@
             </select>
           </div>
           <button class="btn btn-primary" id="save-settings">Save Settings</button>
-          <span id="save-status" style="margin-left:10px;font-size:0.8rem;color:var(--text3);"></span>
+          <span id="save-status" style="margin-left:10px;font-size:0.8rem;color:var(--green);"></span>
         </div>
       </div>
     </div>
@@ -103,18 +103,16 @@
       <div class="section-title">Cerebras API Keys</div>
       <div class="card">
         <p style="font-size:0.82rem;color:var(--text2);margin-bottom:16px;">
-          API keys are rotated automatically per request. The scheduler uses the <strong>gpt-oss-120b</strong> model.
-          Key values are write-only — they cannot be retrieved after saving.
+          Keys are rotated automatically. The scheduler uses <strong>gpt-oss-120b</strong>.
+          Values are write-only — they cannot be read back after saving.
         </p>
 
-        <!-- Add key form -->
         <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-          <input type="text" id="key-label" class="form-input" placeholder="Key label (e.g. Key 1)" style="flex:0 0 140px;"/>
-          <input type="password" id="key-value" class="form-input" placeholder="csk-..." style="flex:1;min-width:200px;"/>
+          <input type="text"     id="key-label" class="form-input" placeholder="Key label (e.g. Key 2)" style="flex:0 0 150px;min-width:120px;"/>
+          <input type="password" id="key-value" class="form-input" placeholder="csk-..." style="flex:1;min-width:180px;"/>
           <button class="btn btn-primary" id="add-key-btn">Add Key</button>
         </div>
 
-        <!-- Key list -->
         <div id="key-list"><div class="loading"><span class="spinner"></span>Loading keys…</div></div>
       </div>
     </div>
@@ -125,12 +123,13 @@
       <div class="card device-card">
         <div class="device-icon" id="device-icon">📱</div>
         <div id="device-status" class="device-status">Checking subscription status…</div>
-        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-          <button class="btn btn-primary" id="btn-subscribe" style="display:none;">Subscribe to Notifications</button>
-          <button class="btn btn-danger" id="btn-unsubscribe" style="display:none;">Unsubscribe</button>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="btn btn-primary"  id="btn-subscribe"   style="display:none;">Subscribe to Notifications</button>
+          <button class="btn btn-warning"  id="btn-test"        style="display:none;">Send Test Notification</button>
+          <button class="btn btn-danger"   id="btn-unsubscribe" style="display:none;">Unsubscribe</button>
         </div>
-        <p style="font-size:0.72rem;color:var(--text3);margin-top:12px;">
-          Subscription requires browser permission. Multiple devices can be subscribed simultaneously.
+        <p style="font-size:0.72rem;color:var(--text3);">
+          Multiple devices can subscribe simultaneously. Requires browser permission.
         </p>
       </div>
     </div>
@@ -156,9 +155,12 @@
 <script>
 utils.buildNav('settings');
 
-const VAPID_PUBLIC_URL = `${window.SUPABASE_URL}/rest/v1/vapid_keys?id=eq.1&select=public_key`;
+const SW_PATH = '/CortexAlarm/sw.js';
 
-// ── Load settings from Supabase ───────────────────────────────────
+// Hardcoded VAPID public key (matches Supabase record id=1)
+const VAPID_PUBLIC_KEY = 'QSCTNYF1NdeJ4hugtMMPg-GxgeugdTzZpN1mcaKIFlPduDAO09-kx6YeT31tZwJSay-zJpK5Ul4f8XR2xk5rmg';
+
+// ── Load settings ─────────────────────────────────────────────────
 async function loadSettings() {
   try {
     const rows = await sb.select('settings', 'id=eq.1');
@@ -166,11 +168,11 @@ async function loadSettings() {
     if (!s) return;
     document.getElementById('toggle-ai').checked        = s.ai_enabled;
     document.getElementById('toggle-notifs').checked    = s.notifications_enabled;
-    document.getElementById('toggle-afternoon').checked  = s.afternoon_trigger;
+    document.getElementById('toggle-afternoon').checked = s.afternoon_trigger;
     document.getElementById('toggle-weekend').checked   = s.weekend_reminders;
     document.getElementById('morning-time').value       = s.morning_time || '06:00';
     document.getElementById('evening-time').value       = s.evening_time || '18:00';
-    document.getElementById('timezone').value           = s.timezone    || 'Africa/Lagos';
+    document.getElementById('timezone').value           = s.timezone     || 'Africa/Lagos';
   } catch (err) {
     utils.toast('Failed to load settings', 'error');
     console.error(err);
@@ -285,14 +287,7 @@ async function deleteKey(id) {
   }
 }
 
-// ── Push subscription ─────────────────────────────────────────────
-const SW_PATH = '/CortexAlarm/sw.js';
-
-async function getVapidPublicKey() {
-  const rows = await sb.select('vapid_keys', 'id=eq.1&select=public_key');
-  return rows?.[0]?.public_key || null;
-}
-
+// ── VAPID helper ──────────────────────────────────────────────────
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -300,66 +295,80 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
+// ── Push subscription state ───────────────────────────────────────
 async function checkSubscription() {
   const icon   = document.getElementById('device-icon');
   const status = document.getElementById('device-status');
   const subBtn = document.getElementById('btn-subscribe');
+  const testBtn = document.getElementById('btn-test');
   const unBtn  = document.getElementById('btn-unsubscribe');
 
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     icon.textContent  = '🚫';
     status.textContent = 'Push notifications are not supported in this browser.';
+    subBtn.style.display = 'none';
+    testBtn.style.display = 'none';
+    unBtn.style.display  = 'none';
     return;
   }
 
-  const reg = await navigator.serviceWorker.register(SW_PATH, { scope: '/CortexAlarm/' });
-  await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.getSubscription();
+  try {
+    const reg = await navigator.serviceWorker.register(SW_PATH, { scope: '/CortexAlarm/' });
+    await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
 
-  if (sub) {
-    icon.textContent   = '✅';
-    status.textContent = 'This device is subscribed to push notifications.';
-    subBtn.style.display = 'none';
-    unBtn.style.display  = 'inline-flex';
-  } else {
-    icon.textContent   = '📱';
-    status.textContent = 'This device is not subscribed. Click below to receive notifications.';
-    subBtn.style.display = 'inline-flex';
-    unBtn.style.display  = 'none';
+    if (sub) {
+      icon.textContent   = '✅';
+      status.textContent = 'This device is subscribed to push notifications.';
+      subBtn.style.display  = 'none';
+      testBtn.style.display = 'inline-flex';
+      unBtn.style.display   = 'inline-flex';
+    } else {
+      icon.textContent   = '📱';
+      status.textContent = 'Not subscribed. Tap below to receive study notifications.';
+      subBtn.style.display  = 'inline-flex';
+      testBtn.style.display = 'none';
+      unBtn.style.display   = 'none';
+    }
+  } catch (err) {
+    icon.textContent   = '⚠️';
+    status.textContent = 'Could not check subscription: ' + err.message;
   }
 }
 
+// ── Subscribe ─────────────────────────────────────────────────────
 document.getElementById('btn-subscribe').addEventListener('click', async () => {
   const btn = document.getElementById('btn-subscribe');
   btn.disabled = true;
   btn.textContent = 'Subscribing…';
   try {
-    const vapidKey = await getVapidPublicKey();
-    if (!vapidKey) throw new Error('VAPID public key not available — please wait for the first scheduler run.');
-
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') throw new Error('Notification permission denied.');
+    if (perm !== 'granted') throw new Error('Notification permission denied. Please allow notifications in your browser settings.');
 
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
 
-    const key    = sub.getKey('p256dh');
-    const auth   = sub.getKey('auth');
-    const p256dh = btoa(String.fromCharCode(...new Uint8Array(key)));
-    const authStr = btoa(String.fromCharCode(...new Uint8Array(auth)));
+    const p256dh  = btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh'))));
+    const authStr = btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth'))));
+
+    const ua = navigator.userAgent;
+    let deviceName = 'Desktop Browser';
+    if (/Android/i.test(ua))        deviceName = 'Android Device';
+    else if (/iPhone|iPad/i.test(ua)) deviceName = 'iOS Device';
+    else if (/Mobile/i.test(ua))      deviceName = 'Mobile Device';
 
     await sb.insert('subscribers', {
-      endpoint:    sub.endpoint,
+      endpoint: sub.endpoint,
       p256dh,
-      auth:        authStr,
-      device_name: navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Desktop Browser',
-      active:      true,
+      auth: authStr,
+      device_name: deviceName,
+      active: true,
     });
 
-    utils.toast('Device subscribed!');
+    utils.toast('Device subscribed successfully!');
     await checkSubscription();
     await loadDevices();
   } catch (err) {
@@ -370,6 +379,34 @@ document.getElementById('btn-subscribe').addEventListener('click', async () => {
   }
 });
 
+// ── Test Notification ─────────────────────────────────────────────
+document.getElementById('btn-test').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-test');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const perm = Notification.permission;
+    if (perm !== 'granted') throw new Error('Notifications are not permitted.');
+
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('📚 Cortex Alarm — Test', {
+      body: 'This is a test notification from your Cortex Alarm study system. Everything is working correctly!',
+      icon: '/CortexAlarm/icon.svg',
+      badge: '/CortexAlarm/icon.svg',
+      tag: 'cortex-test',
+      requireInteraction: false,
+      data: { url: 'https://joshbond123.github.io/CortexAlarm/notifications.html' },
+    });
+    utils.toast('Test notification sent!');
+  } catch (err) {
+    utils.toast('Test failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Test Notification';
+  }
+});
+
+// ── Unsubscribe ───────────────────────────────────────────────────
 document.getElementById('btn-unsubscribe').addEventListener('click', async () => {
   if (!confirm('Unsubscribe this device from notifications?')) return;
   const btn = document.getElementById('btn-unsubscribe');
@@ -381,7 +418,7 @@ document.getElementById('btn-unsubscribe').addEventListener('click', async () =>
       await sb.delete('subscribers', `endpoint=eq.${encodeURIComponent(sub.endpoint)}`);
       await sub.unsubscribe();
     }
-    utils.toast('Unsubscribed');
+    utils.toast('Unsubscribed from notifications');
     await checkSubscription();
     await loadDevices();
   } catch (err) {
@@ -397,7 +434,7 @@ async function loadDevices() {
   try {
     const devs = await sb.select('subscribers', 'order=created_at.desc&select=id,device_name,active,created_at,endpoint');
     if (!devs?.length) {
-      list.innerHTML = '<div class="empty"><p>No subscribed devices.</p></div>';
+      list.innerHTML = '<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📵</div><p>No subscribed devices yet.</p></div>';
       return;
     }
     list.innerHTML = `<div class="table-wrap"><table>
