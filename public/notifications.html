@@ -1,177 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0f1a">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Cortex Alarm — Inbox</title>
-<link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="/CortexAlarm/public/css/style.css"/>
+<link rel="manifest" href="/CortexAlarm/public/manifest.json"/>
 </head>
 <body>
-<div class="app-shell">
-
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">⊛</div>
-      <div><div class="brand-name">Cortex Alarm</div><div class="brand-sub">ND1 Study System</div></div>
-      <div class="brand-pulse"></div>
-    </div>
-    <nav style="padding:8px;flex:1;overflow-y:auto">
-      <div class="nav-group"><div class="nav-group-label">Main</div>
-        <a class="nav-link" href="./index.html"><span class="nav-icon">⬡</span><span>Dashboard</span></a>
-        <a class="nav-link active" href="./notifications.html"><span class="nav-icon">◈</span><span>Inbox</span></a>
-        <a class="nav-link" href="./timetable.html"><span class="nav-icon">◫</span><span>Timetable</span></a>
-      </div>
-      <div class="nav-group"><div class="nav-group-label">System</div>
-        <a class="nav-link" href="./settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
-        <a class="nav-link" href="./keys.html"><span class="nav-icon">⌗</span><span>API Keys</span></a>
-        <a class="nav-link" href="./device.html"><span class="nav-icon">⌖</span><span>Device</span></a>
-        <a class="nav-link" href="./logs.html"><span class="nav-icon">≡</span><span>Logs</span></a>
-      </div>
-    </nav>
-    <div class="sidebar-footer"><div class="sys-dot"></div><span class="sys-label">System Online</span></div>
-  </aside>
-
-  <div class="main">
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-brand"><h1>◈ Cortex Alarm</h1><p>ND1 CS — Study System</p></div>
+    <div id="sidebar-nav"></div>
+  </nav>
+  <main class="main-content">
     <div class="page-header">
-      <div class="page-header-left">
-        <div class="page-title">Notification Inbox</div>
-        <div class="page-subtitle">All study alerts and AI-generated directives</div>
-      </div>
-      <div class="page-actions">
-        <span class="badge badge-blue" id="unread-badge">0 Unread</span>
-        <button class="btn btn-ghost btn-sm" id="mark-all-btn">Mark all read</button>
-      </div>
-    </div>
-    <div class="page-divider"></div>
-
-    <div class="page-content">
-      <div class="filter-tabs" id="filter-tabs">
-        <button class="filter-tab active" data-filter="all">All</button>
-        <button class="filter-tab" data-filter="morning">☀️ Morning</button>
-        <button class="filter-tab" data-filter="afternoon">📚 Afternoon</button>
-        <button class="filter-tab" data-filter="evening">🌙 Evening</button>
-        <button class="filter-tab" data-filter="weekend">🔁 Weekend</button>
-        <button class="filter-tab" data-filter="unread">Unread</button>
-      </div>
-
-      <div id="notif-list">
-        <div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">Loading...</div></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Bottom nav -->
-<nav class="bottom-nav">
-  <div class="bottom-nav-inner">
-    <a class="bnav-item" href="./index.html"><div class="bnav-icon">⬡</div><div class="bnav-label">Home</div></a>
-    <a class="bnav-item active" href="./notifications.html"><div class="bnav-icon">◈</div><div class="bnav-label">Inbox</div></a>
-    <a class="bnav-item" href="./timetable.html"><div class="bnav-icon">◫</div><div class="bnav-label">Schedule</div></a>
-    <a class="bnav-item" href="./settings.html"><div class="bnav-icon">⚙</div><div class="bnav-label">Settings</div></a>
-    <a class="bnav-item" href="./logs.html"><div class="bnav-icon">≡</div><div class="bnav-label">Logs</div></a>
-  </div>
-</nav>
-
-<!-- Read modal -->
-<div id="read-modal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-drag"></div>
-    <div class="modal-title" id="rm-title"></div>
-    <div class="modal-meta" id="rm-meta"></div>
-    <div class="modal-body" id="rm-body"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost w-full" id="rm-close">Close</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast-container"></div>
-
-<script type="module">
-import { fetchStorage, saveJsonToRepo, fmtDate, timeAgo, NOTIF_META, toast, esc } from './js/utils.js';
-
-let allNotifs = [], activeFilter = 'all';
-
-const typeBadge = t => ({ morning:'amber', afternoon:'blue', evening:'purple', weekend:'green', manual:'green' }[t] || 'muted');
-
-function renderList() {
-  let list = activeFilter === 'all' ? allNotifs
-    : activeFilter === 'unread' ? allNotifs.filter(n => !n.read)
-    : allNotifs.filter(n => n.type === activeFilter);
-
-  const el = document.getElementById('notif-list');
-  if (!list.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No notifications here</div><div class="empty-desc">Nothing matches this filter</div></div>`;
-    return;
-  }
-  el.innerHTML = list.map(n => {
-    const m = NOTIF_META[n.type] || NOTIF_META.manual;
-    return `<div class="notif-item${n.read ? '' : ' unread'} fade-up" data-id="${n.id}" style="cursor:pointer">
-      ${!n.read ? '<div class="notif-unread-dot"></div>' : ''}
-      <div class="notif-type-icon ${m.cls}">${m.icon}</div>
-      <div class="notif-body">
-        <div class="notif-title">${esc(n.title)}</div>
-        <div class="notif-preview">${esc(n.body)}</div>
-        <div class="notif-meta">
-          <span>${fmtDate(n.sentAt)}</span>
-          <span class="badge badge-${typeBadge(n.type)}">${m.label}</span>
-          ${n.aiGenerated ? '<span class="badge badge-blue">AI</span>' : ''}
-          ${!n.read ? '<span class="badge badge-blue">NEW</span>' : ''}
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2>Inbox</h2>
+          <p>All AI-generated study notifications. Resets every Monday.</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="filter" class="form-select" style="width:auto;padding:8px 12px;">
+            <option value="">All</option>
+            <option value="morning">Morning</option>
+            <option value="afternoon">Post-Lecture</option>
+            <option value="evening">Evening</option>
+            <option value="weekend">Weekend</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="mark-all-read">Mark All Read</button>
         </div>
       </div>
-    </div>`;
-  }).join('');
-  el.querySelectorAll('.notif-item').forEach(el2 => el2.addEventListener('click', () => openNotif(el2.dataset.id)));
-}
+    </div>
+    <div id="notif-list"><div class="loading"><span class="spinner"></span>Loading…</div></div>
+  </main>
+</div>
+<nav class="bottom-nav"><div class="bottom-nav-inner" id="bottom-nav"></div></nav>
+<script src="/CortexAlarm/public/js/supabase-client.js"></script>
+<script src="/CortexAlarm/public/js/utils.js"></script>
+<script>
+utils.buildNav('notifications');
+let allNotifs = [];
+let currentFilter = '';
 
-function updateBadge() {
-  const u = allNotifs.filter(n => !n.read).length;
-  document.getElementById('unread-badge').textContent = `${u} Unread`;
-}
-
-async function openNotif(id) {
-  const n = allNotifs.find(x => x.id === id);
-  if (!n) return;
-  const m = NOTIF_META[n.type] || NOTIF_META.manual;
-  document.getElementById('rm-title').textContent = n.title;
-  document.getElementById('rm-meta').innerHTML = `
-    <span class="badge badge-${typeBadge(n.type)}">${m.icon} ${m.label}</span>
-    <span class="badge badge-muted">${fmtDate(n.sentAt)}</span>
-    ${n.aiGenerated ? '<span class="badge badge-blue">AI-generated</span>' : ''}`;
-  document.getElementById('rm-body').textContent = n.body;
-  document.getElementById('read-modal').classList.add('open');
-  if (!n.read) {
-    n.read = true;
-    updateBadge(); renderList();
-    saveJsonToRepo('storage/notifications.json', allNotifs, 'chore: mark notification read').catch(() => {});
+async function loadNotifs() {
+  const list = document.getElementById('notif-list');
+  try {
+    allNotifs = await sb.select('notifications', 'order=sent_at.desc&limit=200') || [];
+    renderNotifs();
+  } catch(err) {
+    list.innerHTML = `<div class="empty"><p>Error: ${err.message}</p></div>`;
   }
 }
 
-document.getElementById('rm-close').addEventListener('click', () => document.getElementById('read-modal').classList.remove('open'));
-document.getElementById('read-modal').addEventListener('click', e => { if (e.target === document.getElementById('read-modal')) document.getElementById('read-modal').classList.remove('open'); });
-
-document.getElementById('mark-all-btn').addEventListener('click', async () => {
-  allNotifs.forEach(n => n.read = true);
-  updateBadge(); renderList();
-  const r = await saveJsonToRepo('storage/notifications.json', allNotifs, 'chore: mark all read');
-  toast(r.ok ? 'All marked as read' : 'Marked locally — add GitHub token to sync', r.ok ? 'success' : 'info');
-});
-
-document.getElementById('filter-tabs').addEventListener('click', e => {
-  const btn = e.target.closest('.filter-tab');
-  if (!btn) return;
-  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  activeFilter = btn.dataset.filter;
-  renderList();
-});
-
-async function load() {
-  allNotifs = (await fetchStorage('notifications')) || [];
-  updateBadge(); renderList();
+function renderNotifs() {
+  const list = document.getElementById('notif-list');
+  const shown = currentFilter ? allNotifs.filter(n => n.type === currentFilter) : allNotifs;
+  if (!shown.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">◉</div><p>No notifications yet. The scheduler runs every 5 minutes.</p></div>';
+    return;
+  }
+  list.innerHTML = shown.map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markRead('${n.id}', this)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div class="notif-title">${n.title}</div>
+        ${!n.read ? '<span class="badge badge-blue" style="flex-shrink:0">New</span>' : ''}
+      </div>
+      <div class="notif-body">${n.body}</div>
+      <div class="notif-meta">
+        <span class="badge badge-${n.type==='morning'?'blue':n.type==='afternoon'?'green':n.type==='weekend'?'yellow':'purple'}">${n.type}</span>
+        ${n.ai_generated ? '<span class="badge badge-purple">AI</span>' : ''}
+        <span>${utils.fmtTime(n.sent_at)}</span>
+      </div>
+    </div>`).join('');
 }
-load().catch(() => toast('Failed to load', 'error'));
+
+async function markRead(id, el) {
+  try {
+    await sb.update('notifications', `id=eq.${id}`, { read: true });
+    el.classList.remove('unread');
+    el.querySelector('.badge-blue')?.remove();
+    const i = allNotifs.findIndex(n => n.id === id);
+    if (i !== -1) allNotifs[i].read = true;
+  } catch(err) { console.error(err); }
+}
+
+document.getElementById('filter').addEventListener('change', e => {
+  currentFilter = e.target.value;
+  renderNotifs();
+});
+
+document.getElementById('mark-all-read').addEventListener('click', async () => {
+  try {
+    await sb.update('notifications', 'read=eq.false', { read: true });
+    allNotifs.forEach(n => n.read = true);
+    renderNotifs();
+    utils.toast('All marked as read');
+  } catch(err) { utils.toast(err.message, 'error'); }
+});
+
+loadNotifs();
 </script>
 </body>
 </html>
