@@ -1,0 +1,9 @@
+{
+  "aiEnabled": true,
+  "notificationsEnabled": true,
+  "morningTime": "06:00",
+  "eveningTime": "18:00",
+  "afternoonTrigger": true,
+  "timezone": "Africa/Lagos",
+  "updatedAt": null
+}
