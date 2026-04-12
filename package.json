@@ -1,9 +1,6 @@
 {
   "name": "cortex-alarm",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "type": "module",
-  "description": "AI-powered study discipline notification system for ND1 Computer Science students",
-  "scripts": {
-    "scheduler": "node scheduler/index.js"
-  }
+  "description": "AI-powered study discipline notification system — Supabase + Cerebras + GitHub Actions"
 }
