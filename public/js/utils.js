@@ -3,11 +3,11 @@ const BASE = '/CortexAlarm';
 
 // ── Navigation ────────────────────────────────────────────────────
 const NAV_PAGES = [
-  { href: `${BASE}/public/index.html`,         icon: '◈', label: 'Dashboard' },
-  { href: `${BASE}/public/notifications.html`, icon: '◉', label: 'Inbox'     },
-  { href: `${BASE}/public/timetable.html`,     icon: '◷', label: 'Timetable' },
-  { href: `${BASE}/public/settings.html`,      icon: '◎', label: 'Settings'  },
-  { href: `${BASE}/public/logs.html`,          icon: '◈', label: 'Logs'      },
+  { href: `${BASE}/index.html`,         icon: '◈', label: 'Dashboard' },
+  { href: `${BASE}/notifications.html`, icon: '◉', label: 'Inbox'     },
+  { href: `${BASE}/timetable.html`,     icon: '◷', label: 'Timetable' },
+  { href: `${BASE}/settings.html`,      icon: '◎', label: 'Settings'  },
+  { href: `${BASE}/logs.html`,          icon: '◈', label: 'Logs'      },
 ];
 
 function buildNav(activePage) {
