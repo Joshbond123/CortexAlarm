@@ -159,38 +159,39 @@ async function sendPush(title, body, type, aiGenerated = false) {
 }
 
 // ── Fallback messages (used when AI is disabled or unavailable) ───
-// Every message reinforces: discipline + "no one will help in the exam hall"
+// Focus: daily discipline and consistency — no exam dates, no countdowns
 const FALLBACKS = {
   morning_weekday: (yc) =>
-    `Good morning. Yesterday you covered ${yc}. Do not move to today's lectures with unresolved gaps — review those notes now, close every gap, and go into class prepared. In the exam hall, no lecturer will be there. Only you and what you already know.`,
+    `Good morning. Yesterday you covered ${yc} — do not move forward with unresolved gaps. Review those notes now, close what you do not yet understand, and go into class prepared. In the exam hall, you will rely only on what you have built yourself.`,
 
   morning_weekend: (day) =>
-    `Good morning. Today is ${day} — no lectures, no structure, no one checking on you. That is exactly when discipline separates serious students from those who will struggle in May. Pick your weakest topic right now and study it for two focused hours. The exam hall does not reward intention; it rewards preparation.`,
+    `Good morning. Today is ${day} — no lectures, no structure, no one pushing you. This is exactly where consistent students separate from inconsistent ones. Open your books now and spend two focused hours on your weakest topic; the habit of daily study is what builds real understanding.`,
 
   afternoon: (courses) =>
-    `Lectures are done. The 60 minutes immediately after class are the most powerful for retention — your memory of today's material is at its peak right now. Open your notes for ${courses} and consolidate before it fades. No one will walk you through these topics in the exam hall.`,
+    `The time immediately after class is the most powerful for retention — your memory of today's material is at its peak right now. Open your notes for ${courses} and consolidate before it fades. What you do not reinforce today will remain a weakness, and in the exam hall, no one will clarify it for you.`,
 
   evening_weekday: (courses) =>
-    `Evening check. Before you rest, do a final review of ${courses}. This is not optional — a deliberate 30-minute revision before sleep is scientifically proven to lock content into long-term memory. The students sitting next to you in the exam hall will not be able to help you. Study tonight.`,
+    `Before you rest, take 30 minutes to review ${courses}. A consistent evening revision builds the long-term understanding that no cramming session can replace. What you understand deeply today is what you will be able to apply on your own when it matters.`,
 
   evening_weekend: () =>
-    `The day is ending. Take 20 minutes right now to recall the key concepts you studied today — not by reading, but by writing them from memory. If you cannot recall it now, you will not recall it in the exam hall. Find the gaps tonight while you still have time to fix them.`,
+    `Take 20 minutes right now to recall the key ideas you studied today — write them from memory, not by re-reading. If you cannot recall it now, you will not recall it when you need it most. Find those gaps tonight while you still have time to address them.`,
 };
 
 // ── AI prompts ────────────────────────────────────────────────────
-// Every prompt instructs the model to include the "exam hall" theme naturally
 const SYSTEM_PROMPT = `You are a firm, focused academic discipline coach for ND1 Computer Science students in Nigeria.
 Write exactly 2-3 sentences. Rules:
 - Be direct, specific, and psychologically sharp
-- Every message must naturally include the idea that in the exam hall, no one will help the student — only their own preparation will matter
+- Focus on daily discipline, consistent reading habits, and personal responsibility
+- Naturally include the idea that in the exam hall, the student relies only on what they have prepared themselves — present this as a fact about self-reliance, not as urgency or threat
 - Use simple, clear English — no complex words, no slang
 - Sound professional and serious, not cheerful or generic
 - NO emojis, NO phrases like "keep going", "you can do it", "great work", or "I believe in you"
-- Focus on discipline, responsibility, and the real consequences of not studying
-- The student is in Nigeria studying for ND1 CS exams — make it feel real and relevant`;
+- NEVER mention exam dates, countdowns, weeks or days remaining, or any specific timeline
+- NEVER create urgency based on when exams are — urgency must come from the value of daily consistency, not from a deadline
+- Focus on building the habit of regular study as the foundation of real understanding`;
 
 function buildPrompt(context) {
-  return `${context}\n\nWrite a 2-3 sentence push notification that includes the exam hall consequence naturally.`;
+  return `${context}\n\nWrite a 2-3 sentence push notification focused on daily discipline and consistent study habits. Include the idea that the student relies only on their own preparation — naturally, not as a warning.`;
 }
 
 // ── Main ──────────────────────────────────────────────────────────
@@ -223,7 +224,7 @@ async function main() {
 
       if (weekend) {
         const day = today.day;
-        prompt = buildPrompt(`It is ${day} morning. No lectures today. All semester courses: ${getAllCourses().join(', ')}. The student needs a reminder to study their weakest topic. Emphasise that weekends without structure often lead to exam failure.`);
+        prompt = buildPrompt(`It is ${day} morning. No lectures today. All semester courses: ${getAllCourses().join(', ')}. The student needs a reminder to study their weakest topic. Emphasise that consistent daily study — especially on unstructured days — is what builds real, lasting understanding.`);
         body = FALLBACKS.morning_weekend(day);
       } else {
         const yc = yesterday.lectures.map(l => `${l.code} (${l.subject})`).join(', ') || 'previous material';
@@ -274,7 +275,7 @@ async function main() {
       let body, prompt;
 
       if (weekend) {
-        prompt = buildPrompt(`It is ${today.day} evening. The student should review what they studied today and plan for the coming week. Stress that consistent evening reviews separate passing students from failing ones.`);
+        prompt = buildPrompt(`It is ${today.day} evening. The student should review what they studied today. Emphasise that a consistent evening review is a daily habit that builds deep understanding over time — not a reaction to upcoming exams.`);
         body = FALLBACKS.evening_weekend();
       } else {
         const tc = today.lectures.map(l => `${l.code} (${l.subject})`).join(', ') || "today's material";
