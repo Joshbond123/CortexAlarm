@@ -95,7 +95,7 @@ async function loadDash() {
     const s = settings?.[0];
     document.getElementById('sys-status').innerHTML = `
       <div class="toggle-row">
-        <div class="toggle-info"><h4>AI Generation</h4><p>Cerebras gpt-oss-120b</p></div>
+        <div class="toggle-info"><h4>AI Generation</h4><p>Cerebras llama3.1-8b</p></div>
         <span class="badge ${s?.ai_enabled ? 'badge-green' : 'badge-red'}">${s?.ai_enabled ? 'Enabled' : 'Disabled'}</span>
       </div>
       <div class="toggle-row">
