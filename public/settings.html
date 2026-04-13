@@ -465,10 +465,22 @@ document.getElementById('btn-test').addEventListener('click', async () => {
       testStatus.textContent = '⚠ AI unavailable — using default message';
     }
 
-    btn.textContent = 'Showing notification…';
+    btn.textContent = 'Saving to inbox…';
 
+    // Always save to Supabase first so the Inbox records it
+    const notifTitle = 'Cortex Alarm — Study Alert';
+    await sb.insert('notifications', {
+      title:        notifTitle,
+      body,
+      type:         'test',
+      read:         false,
+      ai_generated: !!aiMessage,
+      sent_at:      new Date().toISOString(),
+    });
+
+    btn.textContent = 'Showing notification…';
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('📚 Cortex Alarm — Study Alert', {
+    await reg.showNotification(notifTitle, {
       body,
       icon:              '/CortexAlarm/icon.svg',
       badge:             '/CortexAlarm/icon.svg',
@@ -477,7 +489,7 @@ document.getElementById('btn-test').addEventListener('click', async () => {
       data: { url: 'https://joshbond123.github.io/CortexAlarm/notifications.html' },
     });
 
-    utils.toast(aiMessage ? 'AI notification sent!' : 'Notification sent (default message)');
+    utils.toast(aiMessage ? 'AI notification sent and saved to inbox!' : 'Notification sent and saved to inbox');
     setTimeout(() => testStatus.textContent = '', 5000);
   } catch (err) {
     utils.toast('Test failed: ' + err.message, 'error');
