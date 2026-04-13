@@ -298,6 +298,16 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // ── Cerebras AI message generator (browser-side) ─────────────────
+const SYSTEM_PROMPT = `You are a firm, focused academic discipline coach for ND1 Computer Science students in Nigeria.
+Write exactly 2-3 sentences. Rules:
+- Be direct, specific, and psychologically sharp
+- Every message must naturally include the idea that in the exam hall, no one will help the student — only their own preparation will matter
+- Use simple, clear English — no complex words, no slang
+- Sound professional and serious, not cheerful or generic
+- NO emojis, NO phrases like "keep going", "you can do it", "great work", or "I believe in you"
+- Focus on discipline, responsibility, and the real consequences of not studying
+- The student is in Nigeria studying for ND1 CS exams — make it feel real and relevant`;
+
 async function generateAIMessage() {
   try {
     const keys = await sb.select('api_keys', 'active=eq.true&select=key&limit=1');
@@ -305,8 +315,10 @@ async function generateAIMessage() {
     const apiKey = keys[0].key;
 
     const day = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',weekday:'long'}).format(new Date());
-    const hour = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',hour:'numeric',hour12:false}).format(new Date());
-    const period = parseInt(hour) < 12 ? 'morning' : parseInt(hour) < 17 ? 'afternoon' : 'evening';
+    const hr  = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',hour:'numeric',hour12:false}).format(new Date());
+    const period = parseInt(hr) < 12 ? 'morning' : parseInt(hr) < 17 ? 'afternoon' : 'evening';
+
+    const userPrompt = `It is ${period} on ${day} for an ND1 CS student in Nigeria. Write a 2-3 sentence study reminder push notification. Include the exam hall consequence naturally.`;
 
     const res = await fetch(CEREBRAS_URL, {
       method: 'POST',
@@ -317,17 +329,11 @@ async function generateAIMessage() {
       body: JSON.stringify({
         model: 'llama3.1-8b',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a strict academic discipline coach for ND1 Computer Science students in Nigeria. Write 2 sharp, direct motivational sentences. Be real and impactful. No emojis, no fluff.',
-          },
-          {
-            role: 'user',
-            content: `It is ${period} on ${day}. Write a push notification reminder to study and stay disciplined.`,
-          },
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user',   content: userPrompt     },
         ],
-        max_tokens: 100,
-        temperature: 0.8,
+        max_tokens: 160,
+        temperature: 0.82,
       }),
     });
 
