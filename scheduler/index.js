@@ -59,13 +59,12 @@ function toMinutes(hhmm) {
   return h * 60 + m;
 }
 
-// Returns true if current time is >= scheduled time AND <= scheduled + maxDelayMins
-// This handles GitHub Actions cron delays gracefully — any run after the scheduled
-// time (up to maxDelayMins late) will still fire the notification
-function shouldFire(currentHHMM, scheduledHHMM, maxDelayMins = 90) {
-  const cur  = toMinutes(currentHHMM);
-  const sched = toMinutes(scheduledHHMM);
-  return cur >= sched && cur <= sched + maxDelayMins;
+// Returns true if the current time is at or past the scheduled time.
+// There is NO upper bound — the sentToday dedup table is the sole guard against
+// re-firing. This ensures the scheduler always fires each slot once per day even
+// if GitHub Actions runs hours late (common with free-tier cron scheduling).
+function shouldFire(currentHHMM, scheduledHHMM) {
+  return toMinutes(currentHHMM) >= toMinutes(scheduledHHMM);
 }
 
 // ── Sent-today dedup ──────────────────────────────────────────────
@@ -85,9 +84,12 @@ async function markSent(type) {
 }
 
 // ── Push notification with TTL + retry ────────────────────────────
-// TTL=86400: push service holds the message for 24 hours and delivers it
-// when the device comes online, instead of discarding immediately (TTL=0)
-const PUSH_TTL = 86400;
+// TTL=2419200 (28 days — the maximum allowed by the Web Push protocol).
+// The browser push service (FCM/Mozilla) holds the message for up to 28 days
+// and delivers it the moment the device comes back online, regardless of how
+// long it has been offline. Nothing is dropped as long as the subscription
+// is still valid.
+const PUSH_TTL = 2419200;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 3000;
 
@@ -154,7 +156,7 @@ async function sendPush(title, body, type, aiGenerated = false) {
   const allFailed = sent === 0 && subs.length > 0;
   await log(
     allFailed ? 'error' : 'success',
-    `Push "${title}": ${sent} delivered, ${failed} failed, ${expired} expired — TTL ${PUSH_TTL}s (24h queued delivery)`
+    `Push "${title}": ${sent} delivered, ${failed} failed, ${expired} expired — TTL ${PUSH_TTL}s (28-day queued delivery)`
   );
 }
 
@@ -253,7 +255,7 @@ async function main() {
       const trigMin  = lh * 60 + lm + 60;
       const trigger  = `${String(Math.floor(trigMin / 60)).padStart(2,'0')}:${String(trigMin % 60).padStart(2,'0')}`;
 
-      if (shouldFire(current, trigger, 90)) {
+      if (shouldFire(current, trigger)) {
         const courses = today.lectures.map(l => `${l.code} (${l.subject})`).join(', ');
         const prompt = buildPrompt(`Lectures just ended for the day. Today's subjects: ${courses}. The student should consolidate notes immediately while the content is fresh. Stress the cost of delayed revision.`);
         let body = FALLBACKS.afternoon(courses);
