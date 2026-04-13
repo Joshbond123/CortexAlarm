@@ -17,17 +17,19 @@
     <div class="page-header">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
         <div>
-          <h2>Inbox</h2>
+          <h2>Inbox <span id="unread-count" style="font-size:0.85rem;font-weight:500;color:var(--accent);display:none"></span></h2>
           <p>All AI-generated study notifications. Resets every Monday.</p>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <select id="filter" class="form-select" style="width:auto;padding:8px 12px;">
             <option value="">All</option>
             <option value="morning">Morning</option>
             <option value="afternoon">Post-Lecture</option>
             <option value="evening">Evening</option>
             <option value="weekend">Weekend</option>
+            <option value="test">Test</option>
           </select>
+          <button class="btn btn-ghost btn-sm" id="btn-refresh">Refresh</button>
           <button class="btn btn-ghost btn-sm" id="mark-all-read">Mark All Read</button>
         </div>
       </div>
@@ -43,46 +45,105 @@ utils.buildNav('notifications');
 let allNotifs = [];
 let currentFilter = '';
 
+function typeBadgeClass(type) {
+  switch (type) {
+    case 'morning':   return 'badge-blue';
+    case 'afternoon': return 'badge-green';
+    case 'weekend':   return 'badge-yellow';
+    case 'evening':   return 'badge-purple';
+    case 'test':      return 'badge-red';
+    default:          return 'badge-blue';
+  }
+}
+
+function typeLabel(type) {
+  switch (type) {
+    case 'morning':   return 'Morning';
+    case 'afternoon': return 'Post-Lecture';
+    case 'weekend':   return 'Weekend';
+    case 'evening':   return 'Evening';
+    case 'test':      return 'Test';
+    default:          return type || 'Alert';
+  }
+}
+
 async function loadNotifs() {
   const list = document.getElementById('notif-list');
+  list.innerHTML = '<div class="loading"><span class="spinner"></span>Loading…</div>';
   try {
     allNotifs = await sb.select('notifications', 'order=sent_at.desc&limit=200') || [];
     renderNotifs();
   } catch(err) {
-    list.innerHTML = `<div class="empty"><p>Error: ${err.message}</p></div>`;
+    list.innerHTML = `<div class="empty"><p>Error loading notifications: ${err.message}</p></div>`;
   }
 }
 
 function renderNotifs() {
-  const list = document.getElementById('notif-list');
-  const shown = currentFilter ? allNotifs.filter(n => n.type === currentFilter) : allNotifs;
+  const list   = document.getElementById('notif-list');
+  const shown  = currentFilter ? allNotifs.filter(n => n.type === currentFilter) : allNotifs;
+  const unread = allNotifs.filter(n => !n.read).length;
+
+  // Update unread count in heading
+  const countEl = document.getElementById('unread-count');
+  if (unread > 0) {
+    countEl.textContent = `(${unread} unread)`;
+    countEl.style.display = 'inline';
+  } else {
+    countEl.style.display = 'none';
+  }
+
   if (!shown.length) {
-    list.innerHTML = '<div class="empty"><div class="empty-icon">◉</div><p>No notifications yet. The scheduler runs every 5 minutes.</p></div>';
+    list.innerHTML = '<div class="empty"><div class="empty-icon">◉</div><p>No notifications yet. Tap "Send AI Test Notification" in Settings to create one, or wait for the scheduler to run.</p></div>';
     return;
   }
+
   list.innerHTML = shown.map(n => `
-    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markRead('${n.id}', this)">
+    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markRead('${n.id}', this)" style="cursor:pointer;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-        <div class="notif-title">${n.title}</div>
+        <div class="notif-title">${escHtml(n.title)}</div>
         ${!n.read ? '<span class="badge badge-blue" style="flex-shrink:0">New</span>' : ''}
       </div>
-      <div class="notif-body">${n.body}</div>
+      <div class="notif-body">${escHtml(n.body)}</div>
       <div class="notif-meta">
-        <span class="badge badge-${n.type==='morning'?'blue':n.type==='afternoon'?'green':n.type==='weekend'?'yellow':'purple'}">${n.type}</span>
+        <span class="badge ${typeBadgeClass(n.type)}">${typeLabel(n.type)}</span>
         ${n.ai_generated ? '<span class="badge badge-purple">AI</span>' : ''}
         <span>${utils.fmtTime(n.sent_at)}</span>
       </div>
     </div>`).join('');
 }
 
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 async function markRead(id, el) {
+  if (el.classList.contains('read-pending')) return;
+  el.classList.add('read-pending');
   try {
     await sb.update('notifications', `id=eq.${id}`, { read: true });
     el.classList.remove('unread');
-    el.querySelector('.badge-blue')?.remove();
+    el.querySelector('.badge-blue[style*="flex-shrink"]')?.remove();
     const i = allNotifs.findIndex(n => n.id === id);
     if (i !== -1) allNotifs[i].read = true;
-  } catch(err) { console.error(err); }
+    // Update unread count
+    renderUnreadCount();
+  } catch(err) {
+    console.error('[INBOX] markRead failed:', err);
+  } finally {
+    el.classList.remove('read-pending');
+  }
+}
+
+function renderUnreadCount() {
+  const unread = allNotifs.filter(n => !n.read).length;
+  const countEl = document.getElementById('unread-count');
+  if (unread > 0) {
+    countEl.textContent = `(${unread} unread)`;
+    countEl.style.display = 'inline';
+  } else {
+    countEl.style.display = 'none';
+  }
 }
 
 document.getElementById('filter').addEventListener('change', e => {
@@ -90,13 +151,25 @@ document.getElementById('filter').addEventListener('change', e => {
   renderNotifs();
 });
 
+document.getElementById('btn-refresh').addEventListener('click', loadNotifs);
+
 document.getElementById('mark-all-read').addEventListener('click', async () => {
+  const unread = allNotifs.filter(n => !n.read);
+  if (!unread.length) { utils.toast('No unread notifications'); return; }
   try {
     await sb.update('notifications', 'read=eq.false', { read: true });
     allNotifs.forEach(n => n.read = true);
     renderNotifs();
     utils.toast('All marked as read');
-  } catch(err) { utils.toast(err.message, 'error'); }
+  } catch(err) {
+    utils.toast('Failed: ' + err.message, 'error');
+  }
+});
+
+// Auto-refresh when the tab becomes visible again (e.g. user returns from settings
+// after sending a test notification)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') loadNotifs();
 });
 
 loadNotifs();
