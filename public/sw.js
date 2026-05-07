@@ -193,8 +193,9 @@
       // Fetch notifications from the last 48 hours that are still unread
       // (48h window catches cases where the device was briefly offline)
       const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      // BUG FIX: only recover unread notifications — belt-and-suspenders with shown-IDs cache
       const url   = `${SUPABASE_URL}/rest/v1/notifications`
-        + `?sent_at=gte.${encodeURIComponent(since)}&order=sent_at.asc&limit=20`;
+        + `?sent_at=gte.${encodeURIComponent(since)}&read=eq.false&order=sent_at.asc&limit=20`;
 
       const res = await fetch(url, {
         headers: {
