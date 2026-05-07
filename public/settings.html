@@ -1,199 +1,172 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Cortex Alarm — Settings</title>
-<link rel="stylesheet" href="/CortexAlarm/css/style.css"/>
-<link rel="manifest" href="/CortexAlarm/manifest.json"/>
-</head>
-<body>
-<div class="app-layout">
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta http-equiv="Cache-Control" content="no-cache"/>
+  <title>Cortex Alarm — Settings</title>
+  <link rel="stylesheet" href="/CortexAlarm/css/style.css"/>
+  <link rel="manifest" href="/CortexAlarm/manifest.json"/>
+  </head>
+  <body>
+  <div class="app-layout">
 
-  <!-- Desktop Sidebar -->
-  <nav class="sidebar">
-    <div class="sidebar-brand">
-      <h1>◈ Cortex Alarm</h1>
-      <p>ND1 CS — Study System</p>
-    </div>
-    <div id="sidebar-nav"></div>
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>◈ Cortex Alarm</h1>
+        <p>ND1 CS — Study System</p>
+      </div>
+      <div id="sidebar-nav"></div>
+    </nav>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h2>Settings</h2>
+        <p>Manage notifications, AI model, API keys, and device subscription.</p>
+      </div>
+
+      <!-- Notification Settings -->
+      <div class="section">
+        <div class="section-title">Notification Settings</div>
+        <div class="card">
+          <div class="toggle-row">
+            <div class="toggle-info"><h4>AI-Generated Messages</h4><p>Use Cerebras llama3.1-8b to personalize notification content</p></div>
+            <label class="toggle"><input type="checkbox" id="toggle-ai"/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><h4>Push Notifications</h4><p>Enable or disable all scheduled notifications</p></div>
+            <label class="toggle"><input type="checkbox" id="toggle-notifs"/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><h4>Post-Lecture Alert</h4><p>Send a consolidation reminder 1 hour after the last lecture</p></div>
+            <label class="toggle"><input type="checkbox" id="toggle-afternoon"/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><h4>Weekend Reminders</h4><p>Morning and evening revision reminders on Saturday and Sunday</p></div>
+            <label class="toggle"><input type="checkbox" id="toggle-weekend"/><span class="toggle-slider"></span></label>
+          </div>
+          <div style="margin-top:16px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Morning Time</label>
+                <input type="time" id="morning-time" class="form-input" value="06:00"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Evening Time</label>
+                <input type="time" id="evening-time" class="form-input" value="18:00"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Timezone</label>
+              <select id="timezone" class="form-select">
+                <option value="Africa/Lagos">Africa/Lagos (WAT, UTC+1)</option>
+                <option value="Africa/Abuja">Africa/Abuja (WAT, UTC+1)</option>
+                <option value="UTC">UTC</option>
+                <option value="Europe/London">Europe/London</option>
+                <option value="America/New_York">America/New_York</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" id="save-settings">Save Settings</button>
+            <span id="save-status" style="margin-left:10px;font-size:0.8rem;color:var(--green);"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cerebras API Keys -->
+      <div class="section">
+        <div class="section-title">Cerebras API Keys</div>
+        <div class="card">
+          <p style="font-size:0.82rem;color:var(--text2);margin-bottom:16px;">
+            Keys are rotated automatically. The scheduler uses <strong>llama3.1-8b</strong>.
+            Values are write-only — they cannot be read back after saving.
+          </p>
+          <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+            <input type="text"     id="key-label" class="form-input" placeholder="Key label (e.g. Key 2)" style="flex:0 0 150px;min-width:120px;"/>
+            <input type="password" id="key-value" class="form-input" placeholder="csk-..." style="flex:1;min-width:180px;"/>
+            <button class="btn btn-primary" id="add-key-btn">Add Key</button>
+          </div>
+          <div id="key-list"><div class="loading"><span class="spinner"></span>Loading keys...</div></div>
+        </div>
+      </div>
+
+      <!-- Device / Push Subscription -->
+      <div class="section">
+        <div class="section-title">This Device</div>
+        <div class="card device-card">
+          <div class="device-icon" id="device-icon">📱</div>
+          <div id="device-status" class="device-status">Checking subscription status...</div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+            <button class="btn btn-primary"  id="btn-subscribe"   style="display:none;">Subscribe to Notifications</button>
+            <button class="btn btn-warning"  id="btn-test"        style="display:none;">Send AI Test Notification</button>
+            <button class="btn btn-danger"   id="btn-unsubscribe" style="display:none;">Unsubscribe</button>
+          </div>
+          <div id="test-status" style="font-size:0.78rem;color:var(--text3);text-align:center;min-height:20px;"></div>
+          <p style="font-size:0.72rem;color:var(--text3);margin-top:8px;">
+            Multiple devices can subscribe simultaneously. Requires browser permission.
+          </p>
+        </div>
+      </div>
+
+      <!-- Subscribed Devices -->
+      <div class="section">
+        <div class="section-title">All Subscribed Devices</div>
+        <div class="card">
+          <div id="devices-list"><div class="loading"><span class="spinner"></span>Loading...</div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner" id="bottom-nav"></div>
   </nav>
 
-  <!-- Main -->
-  <main class="main-content">
-    <div class="page-header">
-      <h2>Settings</h2>
-      <p>Manage notifications, AI model, API keys, and device subscription.</p>
-    </div>
+  <script src="/CortexAlarm/js/supabase-client.js?v=3"></script>
+  <script src="/CortexAlarm/js/utils.js?v=3"></script>
+  <script>
+  /* Cortex Alarm — Settings Page v3 */
 
-    <!-- ── Notification Settings ─────────────────────────────── -->
-    <div class="section">
-      <div class="section-title">Notification Settings</div>
-      <div class="card">
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <h4>AI-Generated Messages</h4>
-            <p>Use Cerebras llama3.1-8b to personalize notification content</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="toggle-ai"/>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <h4>Push Notifications</h4>
-            <p>Enable or disable all scheduled notifications</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="toggle-notifs"/>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <h4>Post-Lecture Alert</h4>
-            <p>Send a consolidation reminder 1 hour after the last lecture</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="toggle-afternoon"/>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="toggle-row">
-          <div class="toggle-info">
-            <h4>Weekend Reminders</h4>
-            <p>Morning and evening revision reminders on Saturday and Sunday</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="toggle-weekend"/>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
+  var SW_PATH      = '/CortexAlarm/sw.js';
+  var CEREBRAS_URL = 'https://api.cerebras.ai/v1/chat/completions';
+  var SYSTEM_PROMPT = 'You are a firm, focused academic discipline coach for ND1 Computer Science students in Nigeria. Write exactly 2-3 sentences. Be direct and psychologically sharp. Focus on daily discipline and personal responsibility. Include the idea that in the exam hall the student relies only on what they prepared themselves. Use simple clear English. NO emojis. NEVER mention exam dates or timelines.';
 
-        <div style="margin-top:16px;">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Morning Time</label>
-              <input type="time" id="morning-time" class="form-input" value="06:00"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Evening Time</label>
-              <input type="time" id="evening-time" class="form-input" value="18:00"/>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Timezone</label>
-            <select id="timezone" class="form-select">
-              <option value="Africa/Lagos">Africa/Lagos (WAT, UTC+1)</option>
-              <option value="Africa/Abuja">Africa/Abuja (WAT, UTC+1)</option>
-              <option value="UTC">UTC</option>
-              <option value="Europe/London">Europe/London</option>
-              <option value="America/New_York">America/New_York</option>
-            </select>
-          </div>
-          <button class="btn btn-primary" id="save-settings">Save Settings</button>
-          <span id="save-status" style="margin-left:10px;font-size:0.8rem;color:var(--green);"></span>
-        </div>
-      </div>
-    </div>
+  utils.buildNav('settings');
 
-    <!-- ── Cerebras API Keys ──────────────────────────────────── -->
-    <div class="section">
-      <div class="section-title">Cerebras API Keys</div>
-      <div class="card">
-        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:16px;">
-          Keys are rotated automatically. The scheduler uses <strong>llama3.1-8b</strong>.
-          Values are write-only — they cannot be read back after saving.
-        </p>
-
-        <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
-          <input type="text"     id="key-label" class="form-input" placeholder="Key label (e.g. Key 2)" style="flex:0 0 150px;min-width:120px;"/>
-          <input type="password" id="key-value" class="form-input" placeholder="csk-..." style="flex:1;min-width:180px;"/>
-          <button class="btn btn-primary" id="add-key-btn">Add Key</button>
-        </div>
-
-        <div id="key-list"><div class="loading"><span class="spinner"></span>Loading keys…</div></div>
-      </div>
-    </div>
-
-    <!-- ── Device / Push Subscription ────────────────────────── -->
-    <div class="section">
-      <div class="section-title">This Device</div>
-      <div class="card device-card">
-        <div class="device-icon" id="device-icon">📱</div>
-        <div id="device-status" class="device-status">Checking subscription status…</div>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
-          <button class="btn btn-primary"  id="btn-subscribe"   style="display:none;">Subscribe to Notifications</button>
-          <button class="btn btn-warning"  id="btn-test"        style="display:none;">Send AI Test Notification</button>
-          <button class="btn btn-danger"   id="btn-unsubscribe" style="display:none;">Unsubscribe</button>
-        </div>
-        <div id="test-status" style="font-size:0.78rem;color:var(--text3);text-align:center;min-height:20px;"></div>
-        <p style="font-size:0.72rem;color:var(--text3);margin-top:8px;">
-          Multiple devices can subscribe simultaneously. Requires browser permission.
-        </p>
-      </div>
-    </div>
-
-    <!-- ── Subscribed Devices ─────────────────────────────────── -->
-    <div class="section">
-      <div class="section-title">All Subscribed Devices</div>
-      <div class="card">
-        <div id="devices-list"><div class="loading"><span class="spinner"></span>Loading…</div></div>
-      </div>
-    </div>
-
-  </main>
-</div>
-
-<!-- Mobile Bottom Nav -->
-<nav class="bottom-nav">
-  <div class="bottom-nav-inner" id="bottom-nav"></div>
-</nav>
-
-<script src="/CortexAlarm/js/supabase-client.js"></script>
-<script src="/CortexAlarm/js/utils.js"></script>
-<script>
-utils.buildNav('settings');
-
-const SW_PATH = '/CortexAlarm/sw.js';
-const CEREBRAS_URL = 'https://api.cerebras.ai/v1/chat/completions';
-// VAPID public key is loaded from the database at subscribe time so it always
-// matches the private key the scheduler uses. Never hardcode this value.
-  async function getVapidPublicKey() {
-    const rows = await sb.select('vapid_keys', 'id=eq.1&select=public_key');
-    const key  = rows?.[0]?.public_key;
-    if (!key) throw new Error('VAPID public key not in DB — run the scheduler once to generate keys, then refresh.');
-    return key;
+  /* ── VAPID key conversion ───────────────────────────────────────── */
+  function urlBase64ToUint8Array(b64) {
+    var padding = '='.repeat((4 - (b64.length % 4)) % 4);
+    var base64  = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var raw     = atob(base64);
+    var out     = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) { out[i] = raw.charCodeAt(i); }
+    return out;
   }
 
-// ── Load settings ─────────────────────────────────────────────────
-async function loadSettings() {
-  try {
-    const rows = await sb.select('settings', 'id=eq.1');
-    const s = rows?.[0];
-    if (!s) return;
-    document.getElementById('toggle-ai').checked        = s.ai_enabled;
-    document.getElementById('toggle-notifs').checked    = s.notifications_enabled;
-    document.getElementById('toggle-afternoon').checked = s.afternoon_trigger;
-    document.getElementById('toggle-weekend').checked   = s.weekend_reminders;
-    document.getElementById('morning-time').value       = s.morning_time || '06:00';
-    document.getElementById('evening-time').value       = s.evening_time || '18:00';
-    document.getElementById('timezone').value           = s.timezone     || 'Africa/Lagos';
-  } catch (err) {
-    utils.toast('Failed to load settings', 'error');
-    console.error(err);
+  /* ── Load settings ──────────────────────────────────────────────── */
+  function loadSettings() {
+    sb.select('settings', 'id=eq.1').then(function(rows) {
+      var s = rows && rows[0];
+      if (!s) { return; }
+      document.getElementById('toggle-ai').checked        = !!s.ai_enabled;
+      document.getElementById('toggle-notifs').checked    = !!s.notifications_enabled;
+      document.getElementById('toggle-afternoon').checked = !!s.afternoon_trigger;
+      document.getElementById('toggle-weekend').checked   = !!s.weekend_reminders;
+      document.getElementById('morning-time').value       = s.morning_time || '06:00';
+      document.getElementById('evening-time').value       = s.evening_time || '18:00';
+      document.getElementById('timezone').value           = s.timezone     || 'Africa/Lagos';
+    }).catch(function(err) {
+      utils.toast('Could not load settings: ' + err.message, 'error');
+    });
   }
-}
 
-// ── Save settings ─────────────────────────────────────────────────
-document.getElementById('save-settings').addEventListener('click', async () => {
-  const btn    = document.getElementById('save-settings');
-  const status = document.getElementById('save-status');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
-  try {
-    await sb.upsert('settings', {
+  /* ── Save settings ──────────────────────────────────────────────── */
+  document.getElementById('save-settings').addEventListener('click', function() {
+    var btn    = document.getElementById('save-settings');
+    var status = document.getElementById('save-status');
+    btn.disabled    = true;
+    btn.textContent = 'Saving...';
+    sb.upsert('settings', {
       id: 1,
       ai_enabled:            document.getElementById('toggle-ai').checked,
       notifications_enabled: document.getElementById('toggle-notifs').checked,
@@ -203,384 +176,306 @@ document.getElementById('save-settings').addEventListener('click', async () => {
       evening_time:          document.getElementById('evening-time').value,
       timezone:              document.getElementById('timezone').value,
       updated_at:            new Date().toISOString(),
+    }).then(function() {
+      status.textContent = 'Saved';
+      utils.toast('Settings saved');
+      setTimeout(function() { status.textContent = ''; }, 3000);
+    }).catch(function(err) {
+      utils.toast('Failed to save: ' + err.message, 'error');
+    }).finally(function() {
+      btn.disabled    = false;
+      btn.textContent = 'Save Settings';
     });
-    status.textContent = 'Saved ✓';
-    utils.toast('Settings saved');
-    setTimeout(() => status.textContent = '', 3000);
-  } catch (err) {
-    utils.toast('Failed to save: ' + err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Save Settings';
-  }
-});
+  });
 
-// ── API Keys ──────────────────────────────────────────────────────
-async function loadKeys() {
-  const list = document.getElementById('key-list');
-  try {
-    const keys = await sb.select('api_keys', 'order=created_at.asc&select=id,label,active,requests,success,fail,last_used,created_at');
-    if (!keys?.length) {
-      list.innerHTML = '<div class="empty"><div class="empty-icon">◎</div><p>No API keys yet. Add your first Cerebras key above.</p></div>';
+  /* ── Load API keys ──────────────────────────────────────────────── */
+  function loadKeys() {
+    var list = document.getElementById('key-list');
+    sb.select('api_keys', 'order=created_at.asc&select=id,label,active,requests,success,fail,last_used,created_at').then(function(keys) {
+      if (!keys || !keys.length) {
+        list.innerHTML = '<div class="empty"><div class="empty-icon">circle</div><p>No API keys yet.</p></div>';
+        return;
+      }
+      list.innerHTML = keys.map(function(k) {
+        return '<div class="key-item" id="ki-' + k.id + '">' +
+          '<div class="key-info">' +
+            '<div class="key-label">' + (k.label || 'Unnamed Key') + '</div>' +
+            '<div class="key-preview">csk-&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div>' +
+            '<div class="key-stats">' +
+              '<span>Requests: <strong>' + (k.requests || 0) + '</strong></span> ' +
+              '<span style="color:var(--green)">OK ' + (k.success || 0) + '</span> ' +
+              '<span style="color:var(--red)">Fail ' + (k.fail || 0) + '</span>' +
+              (k.last_used ? ' <span>Last: ' + utils.timeAgo(k.last_used) + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="key-actions">' +
+            '<span class="badge ' + (k.active ? 'badge-green' : 'badge-red') + '">' + (k.active ? 'Active' : 'Off') + '</span> ' +
+            '<button class="btn btn-sm btn-ghost" onclick="toggleKey('' + k.id + '',' + (k.active ? 'true' : 'false') + ')">' + (k.active ? 'Disable' : 'Enable') + '</button> ' +
+            '<button class="btn btn-sm btn-danger" onclick="deleteKey('' + k.id + '')">Delete</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }).catch(function(err) {
+      list.innerHTML = '<div class="empty"><p>Error: ' + err.message + '</p></div>';
+    });
+  }
+
+  document.getElementById('add-key-btn').addEventListener('click', function() {
+    var label = document.getElementById('key-label').value.trim();
+    var key   = document.getElementById('key-value').value.trim();
+    if (!key) { utils.toast('Enter a key value', 'error'); return; }
+    if (key.indexOf('csk-') !== 0) { utils.toast('Key must start with csk-', 'error'); return; }
+    var btn = document.getElementById('add-key-btn');
+    btn.disabled = true;
+    sb.insert('api_keys', { key: key, label: label || ('Key ' + Date.now()), active: true, requests: 0, success: 0, fail: 0 }).then(function() {
+      document.getElementById('key-label').value = '';
+      document.getElementById('key-value').value = '';
+      utils.toast('API key added');
+      loadKeys();
+    }).catch(function(err) {
+      utils.toast('Failed: ' + err.message, 'error');
+    }).finally(function() {
+      btn.disabled = false;
+    });
+  });
+
+  function toggleKey(id, current) {
+    sb.update('api_keys', 'id=eq.' + id, { active: !current }).then(function() {
+      utils.toast(current ? 'Key disabled' : 'Key enabled');
+      loadKeys();
+    }).catch(function(err) { utils.toast('Error: ' + err.message, 'error'); });
+  }
+
+  function deleteKey(id) {
+    if (!confirm('Delete this API key?')) { return; }
+    sb.delete('api_keys', 'id=eq.' + id).then(function() {
+      utils.toast('Key deleted');
+      loadKeys();
+    }).catch(function(err) { utils.toast('Error: ' + err.message, 'error'); });
+  }
+
+  /* ── AI message (browser-side test) ────────────────────────────── */
+  function generateAIMessage() {
+    return sb.select('api_keys', 'active=eq.true&select=key&limit=1').then(function(keys) {
+      if (!keys || !keys.length) { return null; }
+      var apiKey = keys[0].key;
+      var day    = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Lagos', weekday: 'long' }).format(new Date());
+      var hr     = parseInt(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Lagos', hour: 'numeric', hour12: false }).format(new Date()), 10);
+      var period = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
+      var prompt = 'It is ' + period + ' on ' + day + ' for an ND1 CS student in Nigeria. Write a 2-3 sentence push notification about consistent daily study and personal responsibility.';
+      return fetch(CEREBRAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
+        body: JSON.stringify({ model: 'llama3.1-8b', messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: prompt }], max_tokens: 160, temperature: 0.82 }),
+      }).then(function(res) {
+        if (!res.ok) { return null; }
+        return res.json().then(function(data) {
+          return (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content && data.choices[0].message.content.trim()) || null;
+        });
+      }).catch(function() { return null; });
+    }).catch(function() { return null; });
+  }
+
+  /* ── Check subscription state ───────────────────────────────────── */
+  function checkSubscription() {
+    var icon    = document.getElementById('device-icon');
+    var status  = document.getElementById('device-status');
+    var subBtn  = document.getElementById('btn-subscribe');
+    var testBtn = document.getElementById('btn-test');
+    var unBtn   = document.getElementById('btn-unsubscribe');
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      icon.textContent   = 'X';
+      status.textContent = 'Push notifications are not supported in this browser.';
+      subBtn.style.display = testBtn.style.display = unBtn.style.display = 'none';
       return;
     }
-    list.innerHTML = keys.map(k => `
-      <div class="key-item" id="ki-${k.id}">
-        <div class="key-info">
-          <div class="key-label">${k.label || 'Unnamed Key'}</div>
-          <div class="key-preview">csk-••••••••••••••••••••••••</div>
-          <div class="key-stats">
-            <span>Requests: <strong>${k.requests}</strong></span>
-            <span style="color:var(--green)">✓ ${k.success}</span>
-            <span style="color:var(--red)">✗ ${k.fail}</span>
-            ${k.last_used ? `<span>Last used: ${utils.timeAgo(k.last_used)}</span>` : ''}
-          </div>
-        </div>
-        <div class="key-actions">
-          <span class="badge ${k.active ? 'badge-green' : 'badge-red'}">${k.active ? 'Active' : 'Off'}</span>
-          <button class="btn btn-sm btn-ghost" onclick="toggleKey('${k.id}', ${k.active})">${k.active ? 'Disable' : 'Enable'}</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteKey('${k.id}')">Delete</button>
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    list.innerHTML = `<div class="empty"><p>Error loading keys: ${err.message}</p></div>`;
-  }
-}
 
-document.getElementById('add-key-btn').addEventListener('click', async () => {
-  const label = document.getElementById('key-label').value.trim();
-  const key   = document.getElementById('key-value').value.trim();
-  if (!key) { utils.toast('Please enter a key value', 'error'); return; }
-  if (!key.startsWith('csk-')) { utils.toast('Key must start with csk-', 'error'); return; }
-  const btn = document.getElementById('add-key-btn');
-  btn.disabled = true;
-  try {
-    await sb.insert('api_keys', {
-      key,
-      label: label || `Key ${Date.now()}`,
-      active: true,
-      requests: 0, success: 0, fail: 0,
+    navigator.serviceWorker.register(SW_PATH, { scope: '/CortexAlarm/' }).then(function() {
+      return navigator.serviceWorker.ready;
+    }).then(function(reg) {
+      return reg.pushManager.getSubscription();
+    }).then(function(sub) {
+      if (sub) {
+        icon.textContent   = 'OK';
+        status.textContent = 'This device is subscribed to push notifications.';
+        subBtn.style.display  = 'none';
+        testBtn.style.display = 'inline-flex';
+        unBtn.style.display   = 'inline-flex';
+      } else {
+        icon.textContent   = 'mobile';
+        status.textContent = 'Not subscribed. Tap below to receive study notifications.';
+        subBtn.style.display  = 'inline-flex';
+        testBtn.style.display = 'none';
+        unBtn.style.display   = 'none';
+      }
+    }).catch(function(err) {
+      icon.textContent   = '!';
+      status.textContent = 'Could not check status: ' + err.message;
     });
-    document.getElementById('key-label').value = '';
-    document.getElementById('key-value').value = '';
-    utils.toast('API key added');
-    await loadKeys();
-  } catch (err) {
-    utils.toast('Failed to add key: ' + err.message, 'error');
-  } finally {
-    btn.disabled = false;
-  }
-});
-
-async function toggleKey(id, current) {
-  try {
-    await sb.update('api_keys', `id=eq.${id}`, { active: !current });
-    utils.toast(`Key ${current ? 'disabled' : 'enabled'}`);
-    await loadKeys();
-  } catch (err) {
-    utils.toast('Error: ' + err.message, 'error');
-  }
-}
-
-async function deleteKey(id) {
-  if (!confirm('Delete this API key? This cannot be undone.')) return;
-  try {
-    await sb.delete('api_keys', `id=eq.${id}`);
-    utils.toast('Key deleted');
-    await loadKeys();
-  } catch (err) {
-    utils.toast('Error: ' + err.message, 'error');
-  }
-}
-
-// ── VAPID helper ──────────────────────────────────────────────────
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw     = atob(base64);
-  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
-}
-
-// ── Cerebras AI message generator (browser-side) ─────────────────
-const SYSTEM_PROMPT = `You are a firm, focused academic discipline coach for ND1 Computer Science students in Nigeria.
-Write exactly 2-3 sentences. Rules:
-- Be direct, specific, and psychologically sharp
-- Focus on daily discipline, consistent reading habits, and personal responsibility
-- Naturally include the idea that in the exam hall, the student relies only on what they have prepared themselves — present this as a fact about self-reliance, not as urgency or threat
-- Use simple, clear English — no complex words, no slang
-- Sound professional and serious, not cheerful or generic
-- NO emojis, NO phrases like "keep going", "you can do it", "great work", or "I believe in you"
-- NEVER mention exam dates, countdowns, weeks or days remaining, or any specific timeline
-- NEVER create urgency based on when exams are — urgency must come from the value of daily consistency, not from a deadline
-- Focus on building the habit of regular study as the foundation of real understanding`;
-
-async function generateAIMessage() {
-  try {
-    const keys = await sb.select('api_keys', 'active=eq.true&select=key&limit=1');
-    if (!keys?.length) return null;
-    const apiKey = keys[0].key;
-
-    const day = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',weekday:'long'}).format(new Date());
-    const hr  = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',hour:'numeric',hour12:false}).format(new Date());
-    const period = parseInt(hr) < 12 ? 'morning' : parseInt(hr) < 17 ? 'afternoon' : 'evening';
-
-    const userPrompt = `It is ${period} on ${day} for an ND1 CS student in Nigeria. Write a 2-3 sentence push notification about consistent daily study and personal responsibility. Include the self-reliance idea naturally.`;
-
-    const res = await fetch(CEREBRAS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama3.1-8b',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user',   content: userPrompt     },
-        ],
-        max_tokens: 160,
-        temperature: 0.82,
-      }),
-    });
-
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.choices?.[0]?.message?.content?.trim() || null;
-  } catch (err) {
-    console.error('[AI] Test generation failed:', err.message);
-    return null;
-  }
-}
-
-// ── Push subscription state ───────────────────────────────────────
-async function checkSubscription() {
-  const icon    = document.getElementById('device-icon');
-  const status  = document.getElementById('device-status');
-  const subBtn  = document.getElementById('btn-subscribe');
-  const testBtn = document.getElementById('btn-test');
-  const unBtn   = document.getElementById('btn-unsubscribe');
-
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    icon.textContent  = '🚫';
-    status.textContent = 'Push notifications are not supported in this browser.';
-    subBtn.style.display = testBtn.style.display = unBtn.style.display = 'none';
-    return;
   }
 
-  try {
-    const reg = await navigator.serviceWorker.register(SW_PATH, { scope: '/CortexAlarm/' });
-    await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
+  /* ── Subscribe ──────────────────────────────────────────────────── */
+  document.getElementById('btn-subscribe').addEventListener('click', function() {
+    var btn = document.getElementById('btn-subscribe');
+    btn.disabled    = true;
+    btn.textContent = 'Requesting permission...';
 
-    if (sub) {
-      icon.textContent   = '✅';
-      status.textContent = 'This device is subscribed to push notifications.';
-      subBtn.style.display  = 'none';
-      testBtn.style.display = 'inline-flex';
-      unBtn.style.display   = 'inline-flex';
-    } else {
-      icon.textContent   = '📱';
-      status.textContent = 'Not subscribed. Tap below to receive study notifications.';
-      subBtn.style.display  = 'inline-flex';
-      testBtn.style.display = 'none';
-      unBtn.style.display   = 'none';
+    if (!('Notification' in window)) {
+      utils.toast('Notifications not supported in this browser.', 'error');
+      btn.disabled    = false;
+      btn.textContent = 'Subscribe to Notifications';
+      return;
     }
-  } catch (err) {
-    icon.textContent   = '⚠️';
-    status.textContent = 'Could not check status: ' + err.message;
-    console.error('[SW]', err);
-  }
-}
 
-// ── Subscribe ─────────────────────────────────────────────────────
-document.getElementById('btn-subscribe').addEventListener('click', async () => {
-  const btn    = document.getElementById('btn-subscribe');
-  const status = document.getElementById('device-status');
-  btn.disabled = true;
-  btn.textContent = 'Requesting permission…';
-
-  try {
-    if (!('Notification' in window)) throw new Error('Notifications are not supported in this browser.');
-
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') throw new Error('Permission denied. Please allow notifications in your browser settings and try again.');
-
-    btn.textContent = 'Subscribing…';
-
-    const reg = await navigator.serviceWorker.ready;
-    let sub;
-    try {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(await getVapidPublicKey()),
+    Notification.requestPermission().then(function(perm) {
+      if (perm !== 'granted') {
+        throw new Error('Permission denied — please allow notifications in browser settings.');
+      }
+      btn.textContent = 'Fetching VAPID key...';
+      return sb.select('vapid_keys', 'id=eq.1&select=public_key');
+    }).then(function(rows) {
+      var vapidKey = rows && rows[0] && rows[0].public_key;
+      if (!vapidKey) { throw new Error('VAPID key not found in DB — run the scheduler once first.'); }
+      btn.textContent = 'Subscribing...';
+      return navigator.serviceWorker.ready.then(function(reg) {
+        return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidKey) });
       });
-    } catch (pushErr) {
-      console.error('[PUSH] subscribe error:', pushErr);
-      throw new Error('Could not subscribe: ' + pushErr.message);
-    }
-
-    const p256dh  = btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh'))));
-    const authStr = btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth'))));
-
-    const ua = navigator.userAgent;
-    let deviceName = 'Desktop Browser';
-    if (/Android/i.test(ua))          deviceName = 'Android Device';
-    else if (/iPhone|iPad/i.test(ua))  deviceName = 'iOS Device';
-    else if (/Mobile/i.test(ua))       deviceName = 'Mobile Device';
-
-    btn.textContent = 'Saving…';
-    await sb.insert('subscribers', {
-      endpoint: sub.endpoint,
-      p256dh,
-      auth: authStr,
-      device_name: deviceName,
-      active: true,
+    }).then(function(sub) {
+      var rawP   = new Uint8Array(sub.getKey('p256dh'));
+      var rawA   = new Uint8Array(sub.getKey('auth'));
+      var p256dh = btoa(String.fromCharCode.apply(null, rawP));
+      var auth   = btoa(String.fromCharCode.apply(null, rawA));
+      var ua     = navigator.userAgent;
+      var name   = /Android/i.test(ua) ? 'Android Device' : /iPhone|iPad/i.test(ua) ? 'iOS Device' : /Mobile/i.test(ua) ? 'Mobile Device' : 'Desktop Browser';
+      btn.textContent = 'Saving...';
+      return sb.insert('subscribers', { endpoint: sub.endpoint, p256dh: p256dh, auth: auth, device_name: name, active: true });
+    }).then(function() {
+      utils.toast('Device subscribed!');
+      checkSubscription();
+      loadDevices();
+    }).catch(function(err) {
+      utils.toast(err.message, 'error');
+    }).finally(function() {
+      btn.disabled    = false;
+      btn.textContent = 'Subscribe to Notifications';
     });
+  });
 
-    utils.toast('Device subscribed successfully!');
-    await checkSubscription();
-    await loadDevices();
-  } catch (err) {
-    utils.toast(err.message, 'error');
-    console.error('[SUB]', err);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Subscribe to Notifications';
-  }
-});
+  /* ── Test notification ──────────────────────────────────────────── */
+  document.getElementById('btn-test').addEventListener('click', function() {
+    var btn        = document.getElementById('btn-test');
+    var testStatus = document.getElementById('test-status');
+    btn.disabled    = true;
+    btn.textContent = 'Generating AI message...';
+    testStatus.textContent = 'Calling Cerebras...';
 
-// ── AI Test Notification ──────────────────────────────────────────
-document.getElementById('btn-test').addEventListener('click', async () => {
-  const btn        = document.getElementById('btn-test');
-  const testStatus = document.getElementById('test-status');
-  btn.disabled = true;
-  btn.textContent  = 'Generating AI message…';
-  testStatus.textContent = 'Calling Cerebras llama3.1-8b…';
-
-  try {
-    if (Notification.permission !== 'granted') throw new Error('Notification permission not granted.');
-
-    const aiMessage = await generateAIMessage();
-    const body = aiMessage || 'Stay disciplined. Every hour of focused study compounds into the engineer you are becoming.';
-
-    if (aiMessage) {
-      testStatus.textContent = '✓ AI message generated';
-    } else {
-      testStatus.textContent = '⚠ AI unavailable — using default message';
-    }
-
-    btn.textContent = 'Saving to inbox…';
-
-    // Always save to Supabase first so the Inbox records it
-    const notifTitle = 'Cortex Alarm — Study Alert';
-    await sb.insert('notifications', {
-      title:        notifTitle,
-      body,
-      type:         'test',
-      read:         false,
-      ai_generated: !!aiMessage,
-      sent_at:      new Date().toISOString(),
-    });
-
-    btn.textContent = 'Showing notification…';
-    const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification(notifTitle, {
-      body,
-      icon:              '/CortexAlarm/icon.svg',
-      badge:             '/CortexAlarm/icon.svg',
-      tag:               'cortex-test',
-      requireInteraction: false,
-      data: { url: 'https://joshbond123.github.io/CortexAlarm/notifications.html' },
-    });
-
-    utils.toast(aiMessage ? 'AI notification sent and saved to inbox!' : 'Notification sent and saved to inbox');
-    setTimeout(() => testStatus.textContent = '', 5000);
-  } catch (err) {
-    utils.toast('Test failed: ' + err.message, 'error');
-    testStatus.textContent = '✗ ' + err.message;
-    setTimeout(() => testStatus.textContent = '', 5000);
-    console.error('[TEST]', err);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Send AI Test Notification';
-  }
-});
-
-// ── Unsubscribe ───────────────────────────────────────────────────
-document.getElementById('btn-unsubscribe').addEventListener('click', async () => {
-  if (!confirm('Unsubscribe this device from notifications?')) return;
-  const btn = document.getElementById('btn-unsubscribe');
-  btn.disabled = true;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    if (sub) {
-      await sb.delete('subscribers', `endpoint=eq.${encodeURIComponent(sub.endpoint)}`);
-      await sub.unsubscribe();
-    }
-    utils.toast('Unsubscribed from notifications');
-    await checkSubscription();
-    await loadDevices();
-  } catch (err) {
-    utils.toast(err.message, 'error');
-  } finally {
-    btn.disabled = false;
-  }
-});
-
-// ── Subscribed Devices list ───────────────────────────────────────
-async function loadDevices() {
-  const list = document.getElementById('devices-list');
-  try {
-    const devs = await sb.select('subscribers', 'order=created_at.desc&select=id,device_name,active,created_at,endpoint');
-    if (!devs?.length) {
-      list.innerHTML = '<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📵</div><p>No subscribed devices yet.</p></div>';
+    if (Notification.permission !== 'granted') {
+      utils.toast('Notification permission not granted.', 'error');
+      btn.disabled    = false;
+      btn.textContent = 'Send AI Test Notification';
       return;
     }
-    list.innerHTML = `<div class="table-wrap"><table>
-      <thead><tr><th>Device</th><th>Status</th><th>Subscribed</th><th>Action</th></tr></thead>
-      <tbody>
-        ${devs.map(d => `<tr>
-          <td>${d.device_name || 'Unknown'}</td>
-          <td><span class="badge ${d.active ? 'badge-green' : 'badge-red'}">${d.active ? 'Active' : 'Inactive'}</span></td>
-          <td style="color:var(--text3);font-size:0.78rem">${utils.timeAgo(d.created_at)}</td>
-          <td><button class="btn btn-sm btn-danger" onclick="removeDevice('${d.id}')">Remove</button></td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>`;
-  } catch (err) {
-    list.innerHTML = `<p style="color:var(--text3);font-size:0.82rem">Error: ${err.message}</p>`;
-  }
-}
 
-async function removeDevice(id) {
-  if (!confirm('Remove this device?')) return;
-  try {
-    await sb.delete('subscribers', `id=eq.${id}`);
-    utils.toast('Device removed');
-    await loadDevices();
-  } catch (err) {
-    utils.toast(err.message, 'error');
-  }
-}
+    generateAIMessage().then(function(aiMsg) {
+      var body = aiMsg || 'Stay disciplined. Every hour of focused study compounds into the engineer you are becoming.';
+      testStatus.textContent = aiMsg ? 'AI message generated' : 'AI unavailable — using default';
+      btn.textContent = 'Saving to inbox...';
+      return sb.insert('notifications', {
+        title: 'Cortex Alarm — Study Alert', body: body, type: 'test',
+        read: false, ai_generated: !!aiMsg, sent_at: new Date().toISOString(),
+      }).then(function() {
+        btn.textContent = 'Showing notification...';
+        return navigator.serviceWorker.ready;
+      }).then(function(reg) {
+        return reg.showNotification('Cortex Alarm — Study Alert', {
+          body: body, icon: '/CortexAlarm/icon.svg', badge: '/CortexAlarm/icon.svg',
+          tag: 'cortex-test', requireInteraction: false,
+          data: { url: 'https://joshbond123.github.io/CortexAlarm/notifications.html' },
+        });
+      }).then(function() {
+        utils.toast(aiMsg ? 'AI notification sent and saved!' : 'Notification sent and saved');
+        setTimeout(function() { testStatus.textContent = ''; }, 5000);
+      });
+    }).catch(function(err) {
+      utils.toast('Test failed: ' + err.message, 'error');
+      testStatus.textContent = 'Error: ' + err.message;
+      setTimeout(function() { testStatus.textContent = ''; }, 5000);
+    }).finally(function() {
+      btn.disabled    = false;
+      btn.textContent = 'Send AI Test Notification';
+    });
+  });
 
-// ── Online recovery: when device reconnects, sync missed notifications ────
-  window.addEventListener('online', () => {
-    if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.ready.then(reg => {
+  /* ── Unsubscribe ────────────────────────────────────────────────── */
+  document.getElementById('btn-unsubscribe').addEventListener('click', function() {
+    if (!confirm('Unsubscribe this device from notifications?')) { return; }
+    var btn = document.getElementById('btn-unsubscribe');
+    btn.disabled = true;
+    navigator.serviceWorker.ready.then(function(reg) {
+      return reg.pushManager.getSubscription();
+    }).then(function(sub) {
+      if (!sub) { return; }
+      return sb.delete('subscribers', 'endpoint=eq.' + encodeURIComponent(sub.endpoint)).then(function() {
+        return sub.unsubscribe();
+      });
+    }).then(function() {
+      utils.toast('Unsubscribed');
+      checkSubscription();
+      loadDevices();
+    }).catch(function(err) {
+      utils.toast(err.message, 'error');
+    }).finally(function() { btn.disabled = false; });
+  });
+
+  /* ── Devices list ───────────────────────────────────────────────── */
+  function loadDevices() {
+    var list = document.getElementById('devices-list');
+    sb.select('subscribers', 'order=created_at.desc&select=id,device_name,active,created_at,endpoint').then(function(devs) {
+      if (!devs || !devs.length) {
+        list.innerHTML = '<div class="empty"><p>No subscribed devices yet.</p></div>';
+        return;
+      }
+      var rows = devs.map(function(d) {
+        return '<tr>' +
+          '<td>' + (d.device_name || 'Unknown') + '</td>' +
+          '<td><span class="badge ' + (d.active ? 'badge-green' : 'badge-red') + '">' + (d.active ? 'Active' : 'Inactive') + '</span></td>' +
+          '<td style="color:var(--text3);font-size:0.78rem">' + utils.timeAgo(d.created_at) + '</td>' +
+          '<td><button class="btn btn-sm btn-danger" onclick="removeDevice('' + d.id + '')">Remove</button></td>' +
+        '</tr>';
+      }).join('');
+      list.innerHTML = '<div class="table-wrap"><table>' +
+        '<thead><tr><th>Device</th><th>Status</th><th>Subscribed</th><th>Action</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
+    }).catch(function(err) {
+      list.innerHTML = '<p style="color:var(--text3)">Error: ' + err.message + '</p>';
+    });
+  }
+
+  function removeDevice(id) {
+    if (!confirm('Remove this device?')) { return; }
+    sb.delete('subscribers', 'id=eq.' + id).then(function() {
+      utils.toast('Device removed');
+      loadDevices();
+    }).catch(function(err) { utils.toast(err.message, 'error'); });
+  }
+
+  /* ── Online sync ────────────────────────────────────────────────── */
+  window.addEventListener('online', function() {
+    if (!('serviceWorker' in navigator)) { return; }
+    navigator.serviceWorker.ready.then(function(reg) {
       if (navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'SYNC_MISSED' });
       }
-      if ('sync' in reg) reg.sync.register('sync-missed-notifications').catch(() => {});
-    }).catch(() => {});
+      if ('sync' in reg) { reg.sync.register('sync-missed-notifications').catch(function() {}); }
+    }).catch(function() {});
   });
-  
-// ── Init ──────────────────────────────────────────────────────────
-loadSettings();
-loadKeys();
-checkSubscription().catch(console.error);
-loadDevices();
-</script>
-</body>
-</html>
+
+  /* ── Init ───────────────────────────────────────────────────────── */
+  loadSettings();
+  loadKeys();
+  checkSubscription();
+  loadDevices();
+  </script>
+  </body>
+  </html>
