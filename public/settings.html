@@ -158,8 +158,14 @@ utils.buildNav('settings');
 
 const SW_PATH = '/CortexAlarm/sw.js';
 const CEREBRAS_URL = 'https://api.cerebras.ai/v1/chat/completions';
-
-// Correct 87-char VAPID public key (65 bytes, starts with 0x04 uncompressed EC point)
+// VAPID public key is loaded from the database at subscribe time so it always
+// matches the private key the scheduler uses. Never hardcode this value.
+  async function getVapidPublicKey() {
+    const rows = await sb.select('vapid_keys', 'id=eq.1&select=public_key');
+    const key  = rows?.[0]?.public_key;
+    if (!key) throw new Error('VAPID public key not in DB — run the scheduler once to generate keys, then refresh.');
+    return key;
+  }
 const VAPID_PUBLIC_KEY = 'BMKr2VJd2Wtsy3RltYElXqYxN4n3lRREsdm6nN_6d4iOhJQfYoyKGbEuv2KJU3BgeMcNggAH-k_DVz5RT7tdZNo';
 
 // ── Load settings ─────────────────────────────────────────────────
@@ -407,7 +413,7 @@ document.getElementById('btn-subscribe').addEventListener('click', async () => {
     let sub;
     try {
       sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(await getVapidPublicKey()),
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
     } catch (pushErr) {
@@ -560,6 +566,17 @@ async function removeDevice(id) {
   }
 }
 
+// ── Online recovery: when device reconnects, sync missed notifications ────
+  window.addEventListener('online', () => {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(reg => {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SYNC_MISSED' });
+      }
+      if ('sync' in reg) reg.sync.register('sync-missed-notifications').catch(() => {});
+    }).catch(() => {});
+  });
+  
 // ── Init ──────────────────────────────────────────────────────────
 loadSettings();
 loadKeys();
