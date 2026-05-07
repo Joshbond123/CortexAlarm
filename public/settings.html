@@ -165,7 +165,6 @@ const CEREBRAS_URL = 'https://api.cerebras.ai/v1/chat/completions';
     const key  = rows?.[0]?.public_key;
     if (!key) throw new Error('VAPID public key not in DB — run the scheduler once to generate keys, then refresh.');
     return key;
-const VAPID_PUBLIC_KEY = 'BMKr2VJd2Wtsy3RltYElXqYxN4n3lRREsdm6nN_6d4iOhJQfYoyKGbEuv2KJU3BgeMcNggAH-k_DVz5RT7tdZNo';
 
 // ── Load settings ─────────────────────────────────────────────────
 async function loadSettings() {
@@ -412,7 +411,7 @@ document.getElementById('btn-subscribe').addEventListener('click', async () => {
     let sub;
     try {
       sub = await reg.pushManager.subscribe({
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(await getVapidPublicKey()),
       });
     } catch (pushErr) {
       console.error('[PUSH] subscribe error:', pushErr);
