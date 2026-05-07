@@ -3,7 +3,7 @@
   <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <meta http-equiv="Cache-Control" content="no-cache"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <title>Cortex Alarm -- Settings</title>
   <link rel="stylesheet" href="/CortexAlarm/css/style.css"/>
   <link rel="manifest" href="/CortexAlarm/manifest.json"/>
@@ -20,6 +20,7 @@
       <div class="section">
         <div class="section-title">Notification Settings</div>
         <div class="card">
+          <div id="settings-error" style="display:none;color:var(--red);font-size:0.82rem;margin-bottom:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:var(--radius-sm);border:1px solid rgba(239,68,68,0.2);"></div>
           <div class="toggle-row"><div class="toggle-info"><h4>AI-Generated Messages</h4><p>Use Cerebras llama3.1-8b to personalize notification content</p></div><label class="toggle"><input type="checkbox" id="toggle-ai"/><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><div class="toggle-info"><h4>Push Notifications</h4><p>Enable or disable all scheduled notifications</p></div><label class="toggle"><input type="checkbox" id="toggle-notifs"/><span class="toggle-slider"></span></label></div>
           <div class="toggle-row"><div class="toggle-info"><h4>Post-Lecture Alert</h4><p>Send a consolidation reminder 1 hour after the last lecture</p></div><label class="toggle"><input type="checkbox" id="toggle-afternoon"/><span class="toggle-slider"></span></label></div>
@@ -38,8 +39,10 @@
                 <option value="America/New_York">America/New_York</option>
               </select>
             </div>
-            <button class="btn btn-primary" id="save-settings">Save Settings</button>
-            <span id="save-status" style="margin-left:10px;font-size:0.8rem;color:var(--green);"></span>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <button class="btn btn-primary" id="save-settings">Save Settings</button>
+              <span id="save-status" style="font-size:0.8rem;color:var(--green);"></span>
+            </div>
           </div>
         </div>
       </div>
@@ -53,7 +56,7 @@
             <input type="password" id="key-value" class="form-input" placeholder="csk-..." style="flex:1;min-width:180px;"/>
             <button class="btn btn-primary" id="add-key-btn">Add Key</button>
           </div>
-          <div id="key-list"><div class="loading"><span class="spinner"></span>Loading keys...</div></div>
+          <div id="key-list"><div class="loading"><span class="spinner"></span> Loading keys...</div></div>
         </div>
       </div>
 
@@ -63,9 +66,9 @@
           <div class="device-icon" id="device-icon">📱</div>
           <div id="device-status" class="device-status">Checking subscription status...</div>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
-            <button class="btn btn-primary" id="btn-subscribe"   style="display:none;">Subscribe to Notifications</button>
-            <button class="btn btn-warning" id="btn-test"        style="display:none;">Send AI Test Notification</button>
-            <button class="btn btn-danger"  id="btn-unsubscribe" style="display:none;">Unsubscribe</button>
+            <button class="btn btn-primary"  id="btn-subscribe"   style="display:none;">Subscribe</button>
+            <button class="btn btn-warning"  id="btn-test"        style="display:none;">Send Test</button>
+            <button class="btn btn-danger"   id="btn-unsubscribe" style="display:none;">Unsubscribe</button>
           </div>
           <div id="test-status" style="font-size:0.78rem;color:var(--text3);text-align:center;min-height:20px;"></div>
           <p style="font-size:0.72rem;color:var(--text3);margin-top:8px;">Multiple devices can subscribe simultaneously.</p>
@@ -74,357 +77,521 @@
 
       <div class="section">
         <div class="section-title">All Subscribed Devices</div>
-        <div class="card"><div id="devices-list"><div class="loading"><span class="spinner"></span>Loading...</div></div></div>
+        <div class="card"><div id="devices-list"><div class="loading"><span class="spinner"></span> Loading...</div></div></div>
       </div>
     </main>
   </div>
   <nav class="bottom-nav"><div class="bottom-nav-inner" id="bottom-nav"></div></nav>
 
-  <script src="/CortexAlarm/js/supabase-client.js?v=3"></script>
-  <script src="/CortexAlarm/js/utils.js?v=3"></script>
-  <script>/* Cortex Alarm - Settings Page v4 */
+  <script src="/CortexAlarm/js/supabase-client.js?v=4"></script>
+  <script src="/CortexAlarm/js/utils.js?v=4"></script>
+  <script>/* Cortex Alarm - Settings Page v5 */
 
-var SW_PATH      = "/CortexAlarm/sw.js";
-var CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions";
-var SYSTEM_PROMPT = "You are a firm academic discipline coach for ND1 CS students in Nigeria." +
-  " Write exactly 2-3 sentences. Be direct and psychologically sharp." +
-  " Focus on daily discipline, consistent reading, and personal responsibility." +
-  " Include the idea that in the exam hall the student relies only on what they prepared." +
-  " Simple clear English. No emojis. Never mention exam dates or timelines.";
+  var SW_PATH      = "/CortexAlarm/sw.js";
+  var CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions";
+  var SYSTEM_PROMPT = "You are a firm academic discipline coach for ND1 CS students in Nigeria." +
+    " Write exactly 2-3 sentences. Be direct and psychologically sharp." +
+    " Focus on daily discipline, consistent reading, and personal responsibility." +
+    " Include the idea that in the exam hall the student relies only on what they prepared." +
+    " Simple clear English. No emojis. Never mention exam dates or timelines.";
 
-utils.buildNav("settings");
+  utils.buildNav("settings");
 
-function urlBase64ToUint8Array(b64) {
-  var padding = "=".repeat((4 - (b64.length % 4)) % 4);
-  var base64  = (b64 + padding).replace(/-/g, "+").replace(/_/g, "/");
-  var raw     = atob(base64);
-  var out     = new Uint8Array(raw.length);
-  for (var i = 0; i < raw.length; i++) { out[i] = raw.charCodeAt(i); }
-  return out;
-}
+  /* ── Helpers ─────────────────────────────────────────────── */
+  function urlBase64ToUint8Array(b64) {
+    var padding = "=".repeat((4 - (b64.length % 4)) % 4);
+    var base64  = (b64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+    var raw     = atob(base64);
+    var out     = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) { out[i] = raw.charCodeAt(i); }
+    return out;
+  }
 
-function loadSettings() {
-  sb.select("settings", "id=eq.1").then(function(rows) {
-    var s = rows && rows[0];
-    if (!s) { return; }
-    document.getElementById("toggle-ai").checked        = !!s.ai_enabled;
-    document.getElementById("toggle-notifs").checked    = !!s.notifications_enabled;
-    document.getElementById("toggle-afternoon").checked = !!s.afternoon_trigger;
-    document.getElementById("toggle-weekend").checked   = !!s.weekend_reminders;
-    document.getElementById("morning-time").value       = s.morning_time || "06:00";
-    document.getElementById("evening-time").value       = s.evening_time || "18:00";
-    document.getElementById("timezone").value           = s.timezone     || "Africa/Lagos";
-  }).catch(function(err) {
-    utils.toast("Could not load settings: " + err.message, "error");
+  /* Wrap any promise with a timeout so loading states never hang forever. */
+  function withTimeout(promise, ms, label) {
+    return new Promise(function(resolve, reject) {
+      var timer = setTimeout(function() {
+        reject(new Error((label || "Request") + " timed out after " + (ms / 1000) + "s"));
+      }, ms);
+      promise.then(function(v) { clearTimeout(timer); resolve(v); },
+                   function(e) { clearTimeout(timer); reject(e); });
+    });
+  }
+
+  /* Get the active service-worker registration (or null if unavailable). */
+  function getSwReg() {
+    if (!("serviceWorker" in navigator)) { return Promise.resolve(null); }
+    return withTimeout(
+      navigator.serviceWorker.register(SW_PATH, { scope: "/CortexAlarm/" }),
+      8000, "SW registration"
+    ).catch(function() { return null; });
+  }
+
+  /* ── Settings ────────────────────────────────────────────── */
+  function loadSettings() {
+    var errEl = document.getElementById("settings-error");
+    errEl.style.display = "none";
+    withTimeout(sb.select("settings", "id=eq.1"), 10000, "Load settings")
+      .then(function(rows) {
+        var s = rows && rows[0];
+        if (!s) { return; }
+        document.getElementById("toggle-ai").checked        = !!s.ai_enabled;
+        document.getElementById("toggle-notifs").checked    = !!s.notifications_enabled;
+        document.getElementById("toggle-afternoon").checked = !!s.afternoon_trigger;
+        document.getElementById("toggle-weekend").checked   = !!s.weekend_reminders;
+        document.getElementById("morning-time").value       = s.morning_time || "06:00";
+        document.getElementById("evening-time").value       = s.evening_time || "18:00";
+        document.getElementById("timezone").value           = s.timezone     || "Africa/Lagos";
+      })
+      .catch(function(err) {
+        errEl.textContent  = "Could not load settings: " + err.message + ". Check your connection and refresh.";
+        errEl.style.display = "block";
+      });
+  }
+
+  document.getElementById("save-settings").addEventListener("click", function() {
+    var btn    = document.getElementById("save-settings");
+    var status = document.getElementById("save-status");
+    btn.disabled    = true;
+    btn.textContent = "Saving...";
+    status.textContent = "";
+    withTimeout(
+      sb.update("settings", "id=eq.1", {
+        ai_enabled:            document.getElementById("toggle-ai").checked,
+        notifications_enabled: document.getElementById("toggle-notifs").checked,
+        afternoon_trigger:     document.getElementById("toggle-afternoon").checked,
+        weekend_reminders:     document.getElementById("toggle-weekend").checked,
+        morning_time:          document.getElementById("morning-time").value,
+        evening_time:          document.getElementById("evening-time").value,
+        timezone:              document.getElementById("timezone").value,
+        updated_at:            new Date().toISOString(),
+      }),
+      10000, "Save settings"
+    ).then(function() {
+      status.textContent = "Saved ✓";
+      status.style.color = "var(--green)";
+      utils.toast("Settings saved");
+      setTimeout(function() { status.textContent = ""; }, 3000);
+    }).catch(function(err) {
+      status.textContent = "Save failed";
+      status.style.color = "var(--red)";
+      utils.toast("Failed to save: " + err.message, "error");
+      setTimeout(function() { status.textContent = ""; }, 4000);
+    }).finally(function() {
+      btn.disabled    = false;
+      btn.textContent = "Save Settings";
+    });
   });
-}
 
-document.getElementById("save-settings").addEventListener("click", function() {
-  var btn    = document.getElementById("save-settings");
-  var status = document.getElementById("save-status");
-  btn.disabled    = true;
-  btn.textContent = "Saving...";
-  sb.upsert("settings", {
-    id:                    1,
-    ai_enabled:            document.getElementById("toggle-ai").checked,
-    notifications_enabled: document.getElementById("toggle-notifs").checked,
-    afternoon_trigger:     document.getElementById("toggle-afternoon").checked,
-    weekend_reminders:     document.getElementById("toggle-weekend").checked,
-    morning_time:          document.getElementById("morning-time").value,
-    evening_time:          document.getElementById("evening-time").value,
-    timezone:              document.getElementById("timezone").value,
-    updated_at:            new Date().toISOString(),
-  }).then(function() {
-    status.textContent = "Saved";
-    utils.toast("Settings saved");
-    setTimeout(function() { status.textContent = ""; }, 3000);
-  }).catch(function(err) {
-    utils.toast("Failed to save: " + err.message, "error");
-  }).finally(function() {
-    btn.disabled    = false;
-    btn.textContent = "Save Settings";
+  /* ── API Keys ────────────────────────────────────────────── */
+  function loadKeys() {
+    var list = document.getElementById("key-list");
+    list.innerHTML = "<div class=\"loading\"><span class=\"spinner\"></span> Loading keys...</div>";
+    withTimeout(
+      sb.select("api_keys", "order=created_at.asc&select=id,label,active,requests,success,fail,last_used"),
+      10000, "Load keys"
+    ).then(function(keys) {
+      if (!keys || !keys.length) {
+        list.innerHTML = "<div class=\"empty\"><p>No API keys yet. Add one above.</p></div>";
+        return;
+      }
+      list.innerHTML = keys.map(function(k) {
+        var id  = k.id;
+        var act = k.active ? "true" : "false";
+        return "<div class=\"key-item\">" +
+          "<div class=\"key-info\">" +
+            "<div class=\"key-label\">" + escHtml(k.label || "Unnamed") + "</div>" +
+            "<div class=\"key-preview\">csk-xxxxxxxxxxxxxxxxxxxx</div>" +
+            "<div class=\"key-stats\">Requests: <strong>" + (k.requests||0) + "</strong>" +
+              " &nbsp;<span style=\"color:var(--green)\">&#10003; " + (k.success||0) + "</span>" +
+              " &nbsp;<span style=\"color:var(--red)\">&#10007; " + (k.fail||0) + "</span>" +
+              (k.last_used ? " &nbsp;Last: " + utils.timeAgo(k.last_used) : "") +
+            "</div>" +
+          "</div>" +
+          "<div class=\"key-actions\">" +
+            "<span class=\"badge " + (k.active ? "badge-green" : "badge-red") + "\">" + (k.active ? "Active" : "Off") + "</span> " +
+            "<button class=\"btn btn-sm btn-ghost\" onclick=\"toggleKey(&apos;" + id + "&apos;," + act + ")\">" + (k.active ? "Disable" : "Enable") + "</button> " +
+            "<button class=\"btn btn-sm btn-danger\" onclick=\"deleteKey(&apos;" + id + "&apos;)\">Delete</button>" +
+          "</div>" +
+        "</div>";
+      }).join("");
+    }).catch(function(err) {
+      list.innerHTML = "<div class=\"empty\" style=\"color:var(--red)\"><p>Failed to load keys: " + escHtml(err.message) + "</p><button class=\"btn btn-sm btn-ghost\" onclick=\"loadKeys()\">Retry</button></div>";
+    });
+  }
+
+  document.getElementById("add-key-btn").addEventListener("click", function() {
+    var label = document.getElementById("key-label").value.trim();
+    var key   = document.getElementById("key-value").value.trim();
+    if (!key) { utils.toast("Enter a key value", "error"); return; }
+    if (key.indexOf("csk-") !== 0) { utils.toast("Key must start with csk-", "error"); return; }
+    var btn = document.getElementById("add-key-btn");
+    btn.disabled    = true;
+    btn.textContent = "Adding...";
+    withTimeout(
+      sb.insert("api_keys", {
+        key: key, label: label || ("Key " + Date.now()),
+        active: true, requests: 0, success: 0, fail: 0,
+      }),
+      10000, "Add key"
+    ).then(function() {
+      document.getElementById("key-label").value = "";
+      document.getElementById("key-value").value = "";
+      utils.toast("API key added");
+      loadKeys();
+    }).catch(function(err) {
+      utils.toast("Failed to add key: " + err.message, "error");
+    }).finally(function() {
+      btn.disabled    = false;
+      btn.textContent = "Add Key";
+    });
   });
-});
 
-function loadKeys() {
-  var list = document.getElementById("key-list");
-  sb.select("api_keys", "order=created_at.asc&select=id,label,active,requests,success,fail,last_used").then(function(keys) {
-    if (!keys || !keys.length) {
-      list.innerHTML = "<div class=\"empty\"><p>No API keys yet.</p></div>";
+  function toggleKey(id, current) {
+    withTimeout(
+      sb.update("api_keys", "id=eq." + id, { active: !current }),
+      10000, "Toggle key"
+    ).then(function() {
+      utils.toast(current ? "Key disabled" : "Key enabled");
+      loadKeys();
+    }).catch(function(err) { utils.toast("Error: " + err.message, "error"); });
+  }
+
+  function deleteKey(id) {
+    if (!confirm("Delete this API key?")) { return; }
+    withTimeout(
+      sb.delete("api_keys", "id=eq." + id),
+      10000, "Delete key"
+    ).then(function() {
+      utils.toast("Key deleted");
+      loadKeys();
+    }).catch(function(err) { utils.toast("Error: " + err.message, "error"); });
+  }
+
+  /* ── AI message generation ───────────────────────────────── */
+  function generateAIMessage() {
+    return withTimeout(
+      sb.select("api_keys", "active=eq.true&select=key&limit=1"),
+      8000, "Fetch API key"
+    ).then(function(keys) {
+      if (!keys || !keys.length) { return null; }
+      var apiKey = keys[0].key;
+      var day    = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", weekday: "long" }).format(new Date());
+      var hr     = parseInt(new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", hour: "numeric", hour12: false }).format(new Date()), 10);
+      var period = hr < 12 ? "morning" : hr < 17 ? "afternoon" : "evening";
+      var prompt = "It is " + period + " on " + day + " for an ND1 CS student in Nigeria." +
+                   " Write a 2-3 sentence push notification about consistent daily study and personal responsibility.";
+      return withTimeout(
+        fetch(CEREBRAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
+          body: JSON.stringify({
+            model: "llama3.1-8b",
+            messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: prompt }],
+            max_tokens: 160, temperature: 0.82,
+          }),
+        }).then(function(res) {
+          if (!res.ok) { return null; }
+          return res.json().then(function(data) {
+            var msg = data && data.choices && data.choices[0] && data.choices[0].message;
+            return (msg && msg.content && msg.content.trim()) || null;
+          });
+        }).catch(function() { return null; }),
+        12000, "AI message generation"
+      );
+    }).catch(function() { return null; });
+  }
+
+  /* ── Device subscription ─────────────────────────────────── */
+  function checkSubscription() {
+    var icon    = document.getElementById("device-icon");
+    var status  = document.getElementById("device-status");
+    var subBtn  = document.getElementById("btn-subscribe");
+    var testBtn = document.getElementById("btn-test");
+    var unBtn   = document.getElementById("btn-unsubscribe");
+
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      icon.textContent   = "⚠️";
+      status.textContent = "Push notifications are not supported in this browser.";
+      subBtn.style.display = testBtn.style.display = unBtn.style.display = "none";
       return;
     }
-    list.innerHTML = keys.map(function(k) {
-      var id  = k.id;
-      var act = k.active ? "true" : "false";
-      return "<div class=\"key-item\">" +
-        "<div class=\"key-info\">" +
-          "<div class=\"key-label\">" + (k.label || "Unnamed") + "</div>" +
-          "<div class=\"key-preview\">csk-xxxxxxxxxxxxxxxxxxxx</div>" +
-          "<div class=\"key-stats\">Requests: <strong>" + (k.requests||0) + "</strong>" +
-            " <span style=\"color:var(--green)\">OK " + (k.success||0) + "</span>" +
-            " <span style=\"color:var(--red)\">Fail " + (k.fail||0) + "</span>" +
-            (k.last_used ? " Last: " + utils.timeAgo(k.last_used) : "") +
-          "</div>" +
-        "</div>" +
-        "<div class=\"key-actions\">" +
-          "<span class=\"badge " + (k.active ? "badge-green" : "badge-red") + "\">" + (k.active ? "Active" : "Off") + "</span> " +
-          "<button class=\"btn btn-sm btn-ghost\" onclick=\"toggleKey(&apos;" + id + "&apos;," + act + ")\">" + (k.active ? "Disable" : "Enable") + "</button> " +
-          "<button class=\"btn btn-sm btn-danger\" onclick=\"deleteKey(&apos;" + id + "&apos;)\">Delete</button>" +
-        "</div>" +
-      "</div>";
-    }).join("");
-  }).catch(function(err) {
-    list.innerHTML = "<div class=\"empty\"><p>Error: " + err.message + "</p></div>";
-  });
-}
 
-document.getElementById("add-key-btn").addEventListener("click", function() {
-  var label = document.getElementById("key-label").value.trim();
-  var key   = document.getElementById("key-value").value.trim();
-  if (!key) { utils.toast("Enter a key value", "error"); return; }
-  if (key.indexOf("csk-") !== 0) { utils.toast("Key must start with csk-", "error"); return; }
-  var btn = document.getElementById("add-key-btn");
-  btn.disabled = true;
-  sb.insert("api_keys", {
-    key: key, label: label || ("Key " + Date.now()),
-    active: true, requests: 0, success: 0, fail: 0,
-  }).then(function() {
-    document.getElementById("key-label").value = "";
-    document.getElementById("key-value").value = "";
-    utils.toast("API key added");
-    loadKeys();
-  }).catch(function(err) {
-    utils.toast("Failed: " + err.message, "error");
-  }).finally(function() { btn.disabled = false; });
-});
-
-function toggleKey(id, current) {
-  sb.update("api_keys", "id=eq." + id, { active: !current }).then(function() {
-    utils.toast(current ? "Key disabled" : "Key enabled");
-    loadKeys();
-  }).catch(function(err) { utils.toast("Error: " + err.message, "error"); });
-}
-
-function deleteKey(id) {
-  if (!confirm("Delete this API key?")) { return; }
-  sb.delete("api_keys", "id=eq." + id).then(function() {
-    utils.toast("Key deleted");
-    loadKeys();
-  }).catch(function(err) { utils.toast("Error: " + err.message, "error"); });
-}
-
-function generateAIMessage() {
-  return sb.select("api_keys", "active=eq.true&select=key&limit=1").then(function(keys) {
-    if (!keys || !keys.length) { return null; }
-    var apiKey = keys[0].key;
-    var day    = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", weekday: "long" }).format(new Date());
-    var hr     = parseInt(new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", hour: "numeric", hour12: false }).format(new Date()), 10);
-    var period = hr < 12 ? "morning" : hr < 17 ? "afternoon" : "evening";
-    var prompt = "It is " + period + " on " + day + " for an ND1 CS student in Nigeria." +
-                 " Write a 2-3 sentence push notification about consistent daily study and personal responsibility.";
-    return fetch(CEREBRAS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
-      body: JSON.stringify({
-        model: "llama3.1-8b",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: prompt }],
-        max_tokens: 160, temperature: 0.82,
-      }),
-    }).then(function(res) {
-      if (!res.ok) { return null; }
-      return res.json().then(function(data) {
-        var msg = data && data.choices && data.choices[0] && data.choices[0].message;
-        return (msg && msg.content && msg.content.trim()) || null;
-      });
-    }).catch(function() { return null; });
-  }).catch(function() { return null; });
-}
-
-function checkSubscription() {
-  var icon    = document.getElementById("device-icon");
-  var status  = document.getElementById("device-status");
-  var subBtn  = document.getElementById("btn-subscribe");
-  var testBtn = document.getElementById("btn-test");
-  var unBtn   = document.getElementById("btn-unsubscribe");
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    status.textContent = "Push notifications not supported in this browser.";
-    subBtn.style.display = testBtn.style.display = unBtn.style.display = "none";
-    return;
-  }
-  navigator.serviceWorker.register(SW_PATH, { scope: "/CortexAlarm/" }).then(function() {
-    return navigator.serviceWorker.ready;
-  }).then(function(reg) {
-    return reg.pushManager.getSubscription();
-  }).then(function(sub) {
-    if (sub) {
-      icon.textContent   = "OK";
-      status.textContent = "This device is subscribed to push notifications.";
-      subBtn.style.display  = "none";
-      testBtn.style.display = "inline-flex";
-      unBtn.style.display   = "inline-flex";
-    } else {
-      status.textContent = "Not subscribed. Tap below to receive study notifications.";
+    /* BUG FIX: Use the registration from register() directly — do NOT use
+       navigator.serviceWorker.ready which can hang indefinitely. */
+    getSwReg().then(function(reg) {
+      if (!reg) {
+        icon.textContent   = "⚠️";
+        status.textContent = "Could not register service worker. Try a full page refresh.";
+        subBtn.style.display = "inline-flex";
+        testBtn.style.display = unBtn.style.display = "none";
+        return;
+      }
+      return withTimeout(reg.pushManager.getSubscription(), 6000, "Check subscription")
+        .then(function(sub) {
+          if (sub) {
+            icon.textContent   = "✅";
+            status.textContent = "This device is subscribed to push notifications.";
+            subBtn.style.display  = "none";
+            testBtn.style.display = "inline-flex";
+            unBtn.style.display   = "inline-flex";
+          } else {
+            icon.textContent   = "📱";
+            status.textContent = "Not subscribed. Tap below to receive study notifications.";
+            subBtn.style.display  = "inline-flex";
+            testBtn.style.display = "none";
+            unBtn.style.display   = "none";
+          }
+        });
+    }).catch(function(err) {
+      icon.textContent   = "⚠️";
+      status.textContent = "Could not check subscription: " + err.message;
       subBtn.style.display  = "inline-flex";
       testBtn.style.display = "none";
       unBtn.style.display   = "none";
-    }
-  }).catch(function(err) {
-    status.textContent = "Could not check status: " + err.message;
-  });
-}
-
-document.getElementById("btn-subscribe").addEventListener("click", function() {
-  var btn = document.getElementById("btn-subscribe");
-  btn.disabled    = true;
-  btn.textContent = "Requesting permission...";
-  if (!("Notification" in window)) {
-    utils.toast("Notifications not supported.", "error");
-    btn.disabled    = false;
-    btn.textContent = "Subscribe to Notifications";
-    return;
+    });
   }
-  Notification.requestPermission().then(function(perm) {
-    if (perm !== "granted") { throw new Error("Permission denied."); }
-    btn.textContent = "Fetching VAPID key...";
-    return sb.select("vapid_keys", "id=eq.1&select=public_key");
-  }).then(function(rows) {
-    var vapidKey = rows && rows[0] && rows[0].public_key;
-    if (!vapidKey) { throw new Error("VAPID key not in DB -- run scheduler once first."); }
-    btn.textContent = "Subscribing...";
-    return navigator.serviceWorker.ready.then(function(reg) {
-      return reg.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      });
-    });
-  }).then(function(sub) {
-    var rawP   = new Uint8Array(sub.getKey("p256dh"));
-    var rawA   = new Uint8Array(sub.getKey("auth"));
-    var p256dh = btoa(String.fromCharCode.apply(null, rawP));
-    var auth   = btoa(String.fromCharCode.apply(null, rawA));
-    var ua     = navigator.userAgent;
-    var name   = /Android/i.test(ua) ? "Android Device" : /iPhone|iPad/i.test(ua) ? "iOS Device" : "Desktop Browser";
-    btn.textContent = "Saving...";
-    return sb.insert("subscribers", {
-      endpoint: sub.endpoint, p256dh: p256dh, auth: auth, device_name: name, active: true,
-    });
-  }).then(function() {
-    utils.toast("Device subscribed!");
-    checkSubscription();
-    loadDevices();
-  }).catch(function(err) {
-    utils.toast(err.message, "error");
-  }).finally(function() {
-    btn.disabled    = false;
-    btn.textContent = "Subscribe to Notifications";
-  });
-});
 
-document.getElementById("btn-test").addEventListener("click", function() {
-  var btn        = document.getElementById("btn-test");
-  var testStatus = document.getElementById("test-status");
-  btn.disabled    = true;
-  btn.textContent = "Generating AI message...";
-  testStatus.textContent = "Calling Cerebras...";
-  if (Notification.permission !== "granted") {
-    utils.toast("Notification permission not granted.", "error");
-    btn.disabled    = false;
-    btn.textContent = "Send AI Test Notification";
-    return;
-  }
-  generateAIMessage().then(function(aiMsg) {
-    var body = aiMsg || "Stay disciplined. Every hour of focused study compounds into the engineer you are becoming.";
-    testStatus.textContent = aiMsg ? "AI message generated" : "Using default message";
-    btn.textContent = "Saving to inbox...";
-    return sb.insert("notifications", {
-      title: "Cortex Alarm -- Study Alert", body: body,
-      type: "test", read: false, ai_generated: !!aiMsg, sent_at: new Date().toISOString(),
-    }).then(function() {
-      btn.textContent = "Showing notification...";
-      return navigator.serviceWorker.ready;
-    }).then(function(reg) {
-      return reg.showNotification("Cortex Alarm -- Study Alert", {
-        body: body, icon: "/CortexAlarm/icon.svg", badge: "/CortexAlarm/icon.svg",
-        tag: "cortex-test", requireInteraction: false,
-        data: { url: "https://joshbond123.github.io/CortexAlarm/notifications.html" },
-      });
-    }).then(function() {
-      utils.toast(aiMsg ? "AI notification sent!" : "Notification sent");
-      setTimeout(function() { testStatus.textContent = ""; }, 5000);
-    });
-  }).catch(function(err) {
-    utils.toast("Test failed: " + err.message, "error");
-    testStatus.textContent = "Error: " + err.message;
-    setTimeout(function() { testStatus.textContent = ""; }, 5000);
-  }).finally(function() {
-    btn.disabled    = false;
-    btn.textContent = "Send AI Test Notification";
-  });
-});
+  document.getElementById("btn-subscribe").addEventListener("click", function() {
+    var btn = document.getElementById("btn-subscribe");
+    btn.disabled    = true;
+    btn.textContent = "Requesting permission...";
 
-document.getElementById("btn-unsubscribe").addEventListener("click", function() {
-  if (!confirm("Unsubscribe this device?")) { return; }
-  var btn = document.getElementById("btn-unsubscribe");
-  btn.disabled = true;
-  navigator.serviceWorker.ready.then(function(reg) {
-    return reg.pushManager.getSubscription();
-  }).then(function(sub) {
-    if (!sub) { return; }
-    return sb.delete("subscribers", "endpoint=eq." + encodeURIComponent(sub.endpoint)).then(function() {
-      return sub.unsubscribe();
-    });
-  }).then(function() {
-    utils.toast("Unsubscribed");
-    checkSubscription();
-    loadDevices();
-  }).catch(function(err) { utils.toast(err.message, "error"); })
-  .finally(function() { btn.disabled = false; });
-});
-
-function loadDevices() {
-  var list = document.getElementById("devices-list");
-  sb.select("subscribers", "order=created_at.desc&select=id,device_name,active,created_at").then(function(devs) {
-    if (!devs || !devs.length) {
-      list.innerHTML = "<div class=\"empty\"><p>No subscribed devices yet.</p></div>";
+    if (!("Notification" in window)) {
+      utils.toast("Notifications not supported in this browser.", "error");
+      btn.disabled    = false;
+      btn.textContent = "Subscribe";
       return;
     }
-    var rows = devs.map(function(d) {
-      return "<tr>" +
-        "<td>" + (d.device_name || "Unknown") + "</td>" +
-        "<td><span class=\"badge " + (d.active ? "badge-green" : "badge-red") + "\">" + (d.active ? "Active" : "Inactive") + "</span></td>" +
-        "<td style=\"color:var(--text3);font-size:0.78rem\">" + utils.timeAgo(d.created_at) + "</td>" +
-        "<td><button class=\"btn btn-sm btn-danger\" onclick=\"removeDevice(&apos;" + d.id + "&apos;)\">Remove</button></td>" +
-      "</tr>";
-    }).join("");
-    list.innerHTML = "<div class=\"table-wrap\"><table>" +
-      "<thead><tr><th>Device</th><th>Status</th><th>Subscribed</th><th>Action</th></tr></thead>" +
-      "<tbody>" + rows + "</tbody></table></div>";
-  }).catch(function(err) {
-    list.innerHTML = "<p style=\"color:var(--text3)\">Error: " + err.message + "</p>";
+
+    Notification.requestPermission().then(function(perm) {
+      if (perm !== "granted") { throw new Error("Notification permission was denied. Please allow notifications in your browser settings and try again."); }
+      btn.textContent = "Fetching VAPID key...";
+      return withTimeout(sb.select("vapid_keys", "id=eq.1&select=public_key"), 8000, "Fetch VAPID key");
+    }).then(function(rows) {
+      var vapidKey = rows && rows[0] && rows[0].public_key;
+      if (!vapidKey) { throw new Error("VAPID key not found. Please run the scheduler at least once first."); }
+      btn.textContent = "Subscribing...";
+      /* BUG FIX: Use registration from register() not serviceWorker.ready */
+      return getSwReg().then(function(reg) {
+        if (!reg) { throw new Error("Service worker could not be registered. Try refreshing the page."); }
+        return withTimeout(
+          reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey),
+          }),
+          15000, "Push subscribe"
+        );
+      });
+    }).then(function(sub) {
+      var rawP   = new Uint8Array(sub.getKey("p256dh"));
+      var rawA   = new Uint8Array(sub.getKey("auth"));
+      var p256dh = btoa(String.fromCharCode.apply(null, rawP));
+      var auth   = btoa(String.fromCharCode.apply(null, rawA));
+      var ua     = navigator.userAgent;
+      var name   = /Android/i.test(ua) ? "Android Device" : /iPhone|iPad/i.test(ua) ? "iOS Device" : "Desktop Browser";
+      btn.textContent = "Saving subscription...";
+      /* BUG FIX: Use upsert with on_conflict=endpoint to handle duplicate endpoints gracefully */
+      return withTimeout(
+        sbFetchRaw("POST", "subscribers", "on_conflict=endpoint", {
+          endpoint: sub.endpoint, p256dh: p256dh, auth: auth, device_name: name, active: true,
+        }, "resolution=merge-duplicates,return=representation"),
+        10000, "Save subscription"
+      );
+    }).then(function() {
+      utils.toast("Device subscribed successfully!");
+      checkSubscription();
+      loadDevices();
+    }).catch(function(err) {
+      utils.toast(err.message, "error");
+    }).finally(function() {
+      btn.disabled    = false;
+      btn.textContent = "Subscribe";
+    });
   });
-}
 
-function removeDevice(id) {
-  if (!confirm("Remove this device?")) { return; }
-  sb.delete("subscribers", "id=eq." + id).then(function() {
-    utils.toast("Device removed");
-    loadDevices();
-  }).catch(function(err) { utils.toast(err.message, "error"); });
-}
+  document.getElementById("btn-test").addEventListener("click", function() {
+    var btn        = document.getElementById("btn-test");
+    var testStatus = document.getElementById("test-status");
+    btn.disabled    = true;
+    btn.textContent = "Generating AI message...";
+    testStatus.textContent = "Calling Cerebras AI...";
 
-window.addEventListener("online", function() {
-  if (!("serviceWorker" in navigator)) { return; }
-  navigator.serviceWorker.ready.then(function(reg) {
-    if (navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: "SYNC_MISSED" });
+    if (Notification.permission !== "granted") {
+      utils.toast("Notification permission not granted.", "error");
+      btn.disabled    = false;
+      btn.textContent = "Send Test";
+      testStatus.textContent = "";
+      return;
     }
-    if ("sync" in reg) { reg.sync.register("sync-missed-notifications").catch(function() {}); }
-  }).catch(function() {});
-});
 
-loadSettings();
-loadKeys();
-checkSubscription();
-loadDevices();</script>
+    generateAIMessage().then(function(aiMsg) {
+      var body = aiMsg || "Stay disciplined. Every hour of focused study compounds into the engineer you are becoming.";
+      testStatus.textContent = aiMsg ? "AI message ready" : "Using default message (no AI key available)";
+      btn.textContent = "Saving to inbox...";
+      return withTimeout(
+        sb.insert("notifications", {
+          title: "Cortex Alarm -- Study Alert", body: body,
+          type: "test", read: false, ai_generated: !!aiMsg, sent_at: new Date().toISOString(),
+        }),
+        10000, "Save notification"
+      ).then(function() {
+        btn.textContent = "Showing notification...";
+        /* BUG FIX: Use getSwReg() not serviceWorker.ready */
+        return getSwReg().then(function(reg) {
+          if (!reg) { throw new Error("Service worker not available"); }
+          return withTimeout(
+            reg.showNotification("Cortex Alarm -- Study Alert", {
+              body: body, icon: "/CortexAlarm/icon.svg", badge: "/CortexAlarm/icon.svg",
+              tag: "cortex-test", requireInteraction: false,
+              data: { url: "https://joshbond123.github.io/CortexAlarm/notifications.html" },
+            }),
+            5000, "Show notification"
+          );
+        });
+      }).then(function() {
+        utils.toast(aiMsg ? "AI test notification sent!" : "Test notification sent");
+        setTimeout(function() { testStatus.textContent = ""; }, 5000);
+      });
+    }).catch(function(err) {
+      utils.toast("Test failed: " + err.message, "error");
+      testStatus.textContent = "Error: " + err.message;
+      setTimeout(function() { testStatus.textContent = ""; }, 6000);
+    }).finally(function() {
+      btn.disabled    = false;
+      btn.textContent = "Send Test";
+    });
+  });
+
+  document.getElementById("btn-unsubscribe").addEventListener("click", function() {
+    if (!confirm("Unsubscribe this device from push notifications?")) { return; }
+    var btn = document.getElementById("btn-unsubscribe");
+    btn.disabled    = true;
+    btn.textContent = "Unsubscribing...";
+
+    /* BUG FIX: Use getSwReg() not serviceWorker.ready */
+    getSwReg().then(function(reg) {
+      if (!reg) { throw new Error("Service worker not available"); }
+      return withTimeout(reg.pushManager.getSubscription(), 8000, "Get subscription");
+    }).then(function(sub) {
+      if (!sub) {
+        utils.toast("No active subscription found on this device.");
+        checkSubscription();
+        return;
+      }
+      var endpoint = sub.endpoint;
+      return withTimeout(
+        sb.delete("subscribers", "endpoint=eq." + encodeURIComponent(endpoint)),
+        10000, "Delete subscriber"
+      ).then(function() {
+        return sub.unsubscribe();
+      });
+    }).then(function() {
+      utils.toast("Device unsubscribed");
+      checkSubscription();
+      loadDevices();
+    }).catch(function(err) {
+      utils.toast("Unsubscribe failed: " + err.message, "error");
+    }).finally(function() {
+      btn.disabled    = false;
+      btn.textContent = "Unsubscribe";
+    });
+  });
+
+  /* ── Devices list ────────────────────────────────────────── */
+  function loadDevices() {
+    var list = document.getElementById("devices-list");
+    list.innerHTML = "<div class=\"loading\"><span class=\"spinner\"></span> Loading devices...</div>";
+    withTimeout(
+      sb.select("subscribers", "order=created_at.desc&select=id,device_name,active,created_at"),
+      10000, "Load devices"
+    ).then(function(devs) {
+      if (!devs || !devs.length) {
+        list.innerHTML = "<div class=\"empty\"><p>No subscribed devices yet.</p></div>";
+        return;
+      }
+      var rows = devs.map(function(d) {
+        return "<tr>" +
+          "<td>" + escHtml(d.device_name || "Unknown") + "</td>" +
+          "<td><span class=\"badge " + (d.active ? "badge-green" : "badge-red") + "\">" + (d.active ? "Active" : "Inactive") + "</span></td>" +
+          "<td style=\"color:var(--text3);font-size:0.78rem\">" + utils.timeAgo(d.created_at) + "</td>" +
+          "<td><button class=\"btn btn-sm btn-danger\" onclick=\"removeDevice(&apos;" + d.id + "&apos;)\">Remove</button></td>" +
+        "</tr>";
+      }).join("");
+      list.innerHTML = "<div class=\"table-wrap\"><table>" +
+        "<thead><tr><th>Device</th><th>Status</th><th>Subscribed</th><th>Action</th></tr></thead>" +
+        "<tbody>" + rows + "</tbody></table></div>";
+    }).catch(function(err) {
+      list.innerHTML = "<div class=\"empty\" style=\"color:var(--red)\"><p>Failed to load devices: " + escHtml(err.message) + "</p><button class=\"btn btn-sm btn-ghost\" onclick=\"loadDevices()\">Retry</button></div>";
+    });
+  }
+
+  function removeDevice(id) {
+    if (!confirm("Remove this device from the subscriber list?")) { return; }
+    withTimeout(
+      sb.delete("subscribers", "id=eq." + id),
+      10000, "Remove device"
+    ).then(function() {
+      utils.toast("Device removed");
+      loadDevices();
+    }).catch(function(err) { utils.toast("Error: " + err.message, "error"); });
+  }
+
+  /* ── Expose globals for inline onclick handlers ─────────── */
+  window.toggleKey    = toggleKey;
+  window.deleteKey    = deleteKey;
+  window.removeDevice = removeDevice;
+  window.loadKeys     = loadKeys;
+  window.loadDevices  = loadDevices;
+
+  /* ── Utility: HTML escape for user-provided content ─────── */
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /* ── Helper: raw Supabase fetch with custom QS ──────────── */
+  function sbFetchRaw(method, table, qs, body, prefer) {
+    var url = SUPABASE_URL + "/rest/v1/" + table + (qs ? "?" + qs : "");
+    var headers = {
+      apikey: SUPABASE_ANON,
+      Authorization: "Bearer " + SUPABASE_ANON,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (prefer) { headers["Prefer"] = prefer; }
+    return fetch(url, {
+      method: method,
+      headers: headers,
+      body: body != null ? JSON.stringify(body) : undefined,
+    }).then(function(res) {
+      if (res.status === 204) { return null; }
+      return res.text().then(function(text) {
+        if (!res.ok) { throw new Error("Supabase " + method + " /" + table + ": " + res.status + " — " + text.slice(0, 200)); }
+        try { return JSON.parse(text); } catch(e) { return text; }
+      });
+    });
+  }
+
+  /* ── Online sync handler ─────────────────────────────────── */
+  window.addEventListener("online", function() {
+    if (!("serviceWorker" in navigator)) { return; }
+    navigator.serviceWorker.ready.then(function(reg) {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: "SYNC_MISSED" });
+      }
+      if ("sync" in reg) { reg.sync.register("sync-missed-notifications").catch(function() {}); }
+    }).catch(function() {});
+  });
+
+  /* ── Init ────────────────────────────────────────────────── */
+  loadSettings();
+  loadKeys();
+  checkSubscription();
+  loadDevices();
+  </script>
   </body>
   </html>
