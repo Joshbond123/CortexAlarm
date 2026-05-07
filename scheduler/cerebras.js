@@ -77,7 +77,10 @@ export async function generateMessage(systemPrompt, userPrompt) {
         continue;
       }
 
-      const content = data?.choices?.[0]?.message?.content?.trim();
+      // BUG FIX: Cerebras sometimes wraps its response in surrounding quotes
+      // e.g. '"Your notes..."' — strip them so push body matches inbox display.
+      const raw     = data?.choices?.[0]?.message?.content?.trim() || '';
+      const content = raw.replace(/^[\u201c\u201d"']+|[\u201c\u201d"']+$/g, '').trim();
       if (!content) {
         await updateKeyStats(entry.id, false);
         continue;
