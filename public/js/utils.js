@@ -110,3 +110,30 @@ function getTodaySchedule() {
 }
 
 window.utils = { buildNav, fmtTime, timeAgo, toast, ND1_TIMETABLE, getTodaySchedule };
+
+
+  // ── Background Sync registration (all pages) ──────────────────────
+  // Called once per page load. When the device comes back online the SW
+  // will fetch and show any missed notifications from the Supabase inbox.
+  (function registerOnlineSyncHandler() {
+    function triggerMissedSync() {
+      if (!('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.ready.then(reg => {
+        // Post message to SW (immediate action)
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'SYNC_MISSED' });
+        }
+        // Also register a background sync tag (deferred, survives page close)
+        if ('sync' in reg) {
+          reg.sync.register('sync-missed-notifications').catch(() => {});
+        }
+      }).catch(() => {});
+    }
+
+    // Fire once on page load if online (in case device just came online)
+    if (navigator.onLine) triggerMissedSync();
+
+    // Fire whenever the device transitions from offline → online
+    window.addEventListener('online', triggerMissedSync);
+  }());
+  
