@@ -144,12 +144,16 @@ import webpush from 'web-push';
 
     // Always persist the notification so the Inbox is populated regardless of
     // push delivery outcome — this is the fallback for offline users.
-    await db.insert('notifications', {
+    // BUG FIX: capture the returned row so we can embed the real DB UUID in the
+    // push payload. Without it the SW stores a fake "push-TIMESTAMP" shown-ID,
+    // the background sync never matches it, and old notifications get re-pushed.
+    const inserted = await db.insert('notifications', {
       title, body, type,
       read: false,
       ai_generated: aiGenerated,
       sent_at: new Date().toISOString(),
     });
+    const dbNotifId = Array.isArray(inserted) ? inserted[0]?.id : inserted?.id;
 
     const subs = await db.select('subscribers', 'active=eq.true');
     if (!Array.isArray(subs) || !subs.length) {
@@ -157,7 +161,9 @@ import webpush from 'web-push';
       return;
     }
 
-    const payload = JSON.stringify({ title, body, type });
+    // Include the DB UUID so the SW can mark this exact record as shown
+    // and the background-sync recovery won't re-push it later.
+    const payload = JSON.stringify({ title, body, type, ...(dbNotifId ? { id: dbNotifId } : {}) });
     let sent = 0, failed = 0, expired = 0, vapidErrors = 0;
 
     for (const sub of subs) {
